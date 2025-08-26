@@ -21,6 +21,84 @@ var (
 	clientsMu sync.RWMutex
 )
 
+// Dimensiones del canvas
+
+var canvasWidth = 50
+var canvasHeight = 50
+
+// Canvas: matriz de caracteres
+
+var canvas = make([][]rune, canvasHeight)
+
+/*
+Iniciar canvas Nuevo
+*/
+
+func initCanvas() {
+	for i := 0; i < canvasHeight; i++ {
+		canvas[i] = make([]rune, canvasWidth)
+		for j := 0; j < canvasWidth; j++ {
+			canvas[i][j] = ' '
+		}
+	}
+}
+
+/*
+Render canvas
+*/
+func renderCanvas() string {
+	clientsMu.RLock()
+	defer clientsMu.RUnlock()
+
+	var output string
+	for i := 0; i < canvasHeight; i++ {
+		for j := 0; j < canvasWidth; j++ {
+			output += string(canvas[i][j])
+		}
+		output += "\n"
+	}
+	return output
+}
+
+/*
+Reenvío de mensajes a todos los clientes conectados.
+*/
+func broadcast(message string, sender net.Conn) {
+	clientsMu.Lock()
+	defer clientsMu.Unlock()
+	for client := range clients {
+		if client != sender {
+			client.Write([]byte(message))
+		}
+	}
+}
+
+/*
+Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
+*/
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	//conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
+
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("Recibido:", line)
+
+		conn.Write([]byte(renderCanvas()))
+
+		//isCommand(line, nil)
+
+		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error al leer del cliente:", err)
+	}
+	fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
+}
+
 func main() {
 
 	// Creamos el listener
@@ -46,42 +124,4 @@ func main() {
 
 		go handleConnection(conn)
 	}
-}
-
-/*
-Reenvío de mensajes a todos los clientes conectados.
-*/
-
-func broadcast(message string, sender net.Conn) {
-	clientsMu.Lock()
-	defer clientsMu.Unlock()
-	for client := range clients {
-		if client != sender {
-			client.Write([]byte(message))
-		}
-	}
-}
-
-/*
-Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
-*/
-
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	//conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
-
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println("Recibido:", line)
-
-		isCommand(line, nil)
-
-		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error al leer del cliente:", err)
-	}
-	fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
 }
