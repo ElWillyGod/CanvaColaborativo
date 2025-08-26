@@ -23,8 +23,9 @@ var (
 
 // Dimensiones del canvas
 
-var canvasWidth = 50
-var canvasHeight = 50
+var canvasWidth = 40
+var canvasHeight = 40
+var PORT = ":8080"
 
 // Canvas: matriz de caracteres
 
@@ -88,8 +89,15 @@ func handleConnection(conn net.Conn) {
 		line := scanner.Text()
 		fmt.Println("Recibido:", line)
 
+		if !allowCommand(conn) {
+			fmt.Println("Demasiados comandos enviados")
+			conn.Write([]byte("Demasiados comandos enviados\n"))
+			continue
+		}
+
 		if isCommand(line, nil) == 0 {
 			fmt.Println("Comando no reconocido")
+			conn.Write([]byte("Comando no reconocido\n"))
 		}
 
 		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
@@ -104,7 +112,7 @@ func main() {
 
 	// Creamos el listener
 	initCanvas()
-	listener, err := net.Listen("tcp", ":8080")
+	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)
 		return
