@@ -79,6 +79,7 @@ Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
+
 	//conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
 
@@ -87,9 +88,9 @@ func handleConnection(conn net.Conn) {
 		line := scanner.Text()
 		fmt.Println("Recibido:", line)
 
-		conn.Write([]byte(renderCanvas()))
-
-		//isCommand(line, nil)
+		if isCommand(line, nil) == 0 {
+			fmt.Println("Comando no reconocido")
+		}
 
 		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
 	}
@@ -102,6 +103,7 @@ func handleConnection(conn net.Conn) {
 func main() {
 
 	// Creamos el listener
+	initCanvas()
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)
@@ -117,6 +119,13 @@ func main() {
 			fmt.Println("Error al aceptar la conexión:", err)
 			continue
 		}
+
+		/*
+			logica de preguntar si quiere un nuevo canva o unirse a uno existente
+			esto implica saber cuales estan cargados y cuales estan en memoria
+		*/
+
+		conn.Write([]byte(renderCanvas()))
 
 		clientsMu.Lock()
 		clients[conn] = true
