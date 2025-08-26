@@ -21,8 +21,9 @@ A que se refiere con ayuda mínima integrada?
 
 4. **Persistencia:** snapshots para restaurar estado (podría ser por modificación como un Ctrl+Z)
 
-5. **Configuración:** tamaño de canvas, puerto, y límites ajustables por variables de entorno.
+5. **Configuración:** tamaño de canvas, puerto, y límites ajustables por variables de entorno. 
 
+Variables de entorno de Telnet y del servidor.
 
 Donde puedo aplicar estructuras? algo con skips list y memoria dinamica. Para la gestion de clientes?
 slices para buffers de red y rate limiting?
