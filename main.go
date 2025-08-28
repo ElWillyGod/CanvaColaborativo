@@ -33,6 +33,9 @@ var canvas = make([][]rune, canvasHeight)
 
 /*
 Iniciar canvas Nuevo
+
+Esto se tiene que arreglar, podemos hacer que no se genere todo el canvas
+sino que asignar memoria dinamica solo a los bloques se escriban.
 */
 
 func initCanvas() {

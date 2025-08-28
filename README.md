@@ -30,6 +30,19 @@ slices para buffers de red y rate limiting?
 
 el historial de comandos puede ser guardado mediante una lista enlazada.
 
-Puedo usar listas circulares para gestionar lo de rate limiting?
+[x] Puedo usar listas circulares para gestionar lo de rate limiting? 
 
-manejar tiempos de espera, nose pueden quedar esperando si hay muchos clientes.
+manejar tiempos de espera, nose pueden quedar esperando si hay muchos clientes. noon
+
+Grupos de canvas en paralelo:
+las personas se pueden unir y crear su propio canvas con un id unico
+/////////////////////////////////////////////////
+Motor de canvas **tileado + esparso** (alto rendimiento)
+
+* **Idea:** dividir el canvas en **tiles** (p. ej. 64×32). Solo asignás memoria para tiles “tocados”.
+* **Estructuras:**
+
+  * **HashMap → Tile** (map\[TileID]\*Tile) con **pooling** (`sync.Pool`) para reciclar tiles y buffers.
+  * Dentro de cada tile, **matriz de run-length (RLE) por filas** para comprimir secuencias de caracteres iguales (ideal para ASCII).
+  * **Copy-on-write** para snapshots (ver §4).
+* **Beneficio:** baja uso de RAM, updates localizados, snapshots y “undos” baratos.

@@ -21,7 +21,11 @@ type Command struct {
 var commands = map[string]func(args []string) int{
 	"/triangle": triangleCommand,
 	"/line":     lineCommand,
-	"/set":      setEnvironment,
+	//////////////////////////////////////////////////
+	"/set":   setEnvironment,
+	"/save":  saveCanvas,
+	"/load":  loadCanvas,
+	"/clear": clearCanvas,
 }
 
 func isCommand(command string, args []string) int {
@@ -83,5 +87,20 @@ func lineCommand(args []string) int {
 
 func setEnvironment(args []string) int {
 	// Aquí se puede implementar la lógica para establecer el entorno
+	return 0
+}
+
+func saveCanvas(args []string) int {
+	// Aquí se puede implementar la lógica para guardar el canvas
+	return 0
+}
+
+func loadCanvas(args []string) int {
+	// Aquí se puede implementar la lógica para cargar el canvas
+	return 0
+}
+
+func clearCanvas(args []string) int {
+	// Aquí se puede implementar la lógica para limpiar el canvas
 	return 0
 }
