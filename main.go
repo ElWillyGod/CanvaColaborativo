@@ -75,6 +75,7 @@ func renderCanvas() string {
 /*
 Reenvío de mensajes a todos los clientes conectados.
 */
+
 func broadcast(message string, sender net.Conn) {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
@@ -106,7 +107,7 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if isCommand(line, nil) == 0 {
+		if isCommand(line, []string{conn.RemoteAddr().String()}) == 0 {
 			fmt.Println("Comando no reconocido")
 			conn.Write([]byte("fijate bien que pusiste algo mal\n"))
 		}

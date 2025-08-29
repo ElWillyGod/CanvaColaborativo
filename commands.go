@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 /*
@@ -27,6 +29,17 @@ var commands = map[string]func(args []string) int{
 	"/load":  loadCanvas,
 	"/clear": clearCanvas,
 }
+
+///////////////////////////////////////////////////////
+// cositas para el clear con confirmacion
+
+var (
+	pendingClear       = false
+	clearConfirmations = make(map[string]bool)
+	clearStartTime     time.Time
+	clearDuration      = 10 * time.Second
+	clearMu            sync.Mutex
+)
 
 func isCommand(command string, args []string) int {
 	// Aquí se puede implementar la lógica para verificar si el comando es válido
@@ -100,7 +113,16 @@ func loadCanvas(args []string) int {
 	return 0
 }
 
+/*
+	Aquí se puede implementar la lógica para limpiar el canvas
+	necesitamos confirmacion de todos los clientes conectados
+	no quiero modificar el handleConnection, entonces voy a meter un timeout
+*/
+
 func clearCanvas(args []string) int {
-	// Aquí se puede implementar la lógica para limpiar el canvas
+
+	clearMu.Lock()
+	defer clearMu.Unlock()
+
 	return 0
 }
