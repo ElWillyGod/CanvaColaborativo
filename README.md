@@ -8,7 +8,7 @@ El foco no debería ser en la parte visual, sino enfocarse en las funcionalidade
 
 # Desarrollo de la letra
 
-Todo en Go
+Todo en Go **tengo que orientar esto a miles de usuarios**
 
 Canvas ASCII multiusuario en tiempo real
 

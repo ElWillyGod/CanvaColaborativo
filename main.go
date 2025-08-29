@@ -15,7 +15,10 @@ Con soporte para telnet
 
 /*
 Mapeo de conexiones de clientes
+que tan bueno puede ser esto con miles de usuarios???
+canviarlo a channels con worker o hacer sharding map
 */
+
 var (
 	clients   = make(map[net.Conn]bool)
 	clientsMu sync.RWMutex
@@ -35,7 +38,11 @@ var canvas = make([][]rune, canvasHeight)
 Iniciar canvas Nuevo
 
 Esto se tiene que arreglar, podemos hacer que no se genere todo el canvas
-sino que asignar memoria dinamica solo a los bloques se escriban.
+sino que asignar memoria dinamica solo a los bloques se escriban una especie de hashMap
+que pasa si dos usuarios quieren escribir al mismo tiempo en el mismo bloque, es posible implementar
+un sistema que bloquee solamente esas secciones del canvas.
+Como afecta esto al guardado de la informacion en redis?????
+Podria aplicar compresion de bloques de ASCII para las secciones???
 */
 
 func initCanvas() {
@@ -50,6 +57,7 @@ func initCanvas() {
 /*
 Render canvas
 */
+
 func renderCanvas() string {
 	clientsMu.RLock()
 	defer clientsMu.RUnlock()
@@ -94,13 +102,13 @@ func handleConnection(conn net.Conn) {
 
 		if !allowCommand(conn) {
 			fmt.Println("Demasiados comandos enviados")
-			conn.Write([]byte("Demasiados comandos enviados\n"))
+			conn.Write([]byte("afloja la moto flaco\n"))
 			continue
 		}
 
 		if isCommand(line, nil) == 0 {
 			fmt.Println("Comando no reconocido")
-			conn.Write([]byte("Comando no reconocido\n"))
+			conn.Write([]byte("fijate bien que pusiste algo mal\n"))
 		}
 
 		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
@@ -122,7 +130,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Println("Servidor escuchando en :8080")
+	fmt.Println("Servidor escuchando en ", PORT)
 
 	for {
 		conn, err := listener.Accept()
