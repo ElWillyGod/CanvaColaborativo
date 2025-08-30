@@ -41,7 +41,7 @@ var (
 	clearMu            sync.Mutex
 )
 
-func isCommand(command string, args []string) int {
+func isCommand(command string, extraArgs []string) int {
 	// Aquí se puede implementar la lógica para verificar si el comando es válido
 	// y devolver y ejecutarlo
 
@@ -51,7 +51,8 @@ func isCommand(command string, args []string) int {
 	}
 	cmd := parts[0]
 	if fn, ok := commands[cmd]; ok {
-		return fn(parts[1:])
+		args := append(parts[1:], extraArgs...)
+		return fn(args)
 	}
 	//fmt.Println("Comando no reconocido")
 	return 0
@@ -124,5 +125,20 @@ func clearCanvas(args []string) int {
 	clearMu.Lock()
 	defer clearMu.Unlock()
 
-	return 0
+	if !pendingClear {
+		pendingClear = true
+		clearConfirmations = make(map[string]bool)
+		clearStartTime = time.Now()
+		broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
+		go waitForClearConfirmations()
+		return 1
+
+	}
+
+	if args[0] == "yes" && len(args) > 1 {
+		userID := args[1]
+		clearConfirmations[userID] = true
+	}
+	return 1
+
 }

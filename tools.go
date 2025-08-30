@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 /*
 	Algoritmo de Bresenham para dibujar líneas
 */
@@ -40,4 +42,23 @@ func abs(a int) int {
 		return -a
 	}
 	return a
+}
+
+func waitForClearConfirmations() {
+	time.Sleep(clearDuration)
+	clearMu.Lock()
+	defer clearMu.Unlock()
+
+	if !pendingClear {
+		return
+	}
+
+	if len(clearConfirmations) == len(clients) {
+		initCanvas() //crea un canva nuevo (Canviar por un reset)
+		broadcast(renderCanvas(), nil)
+		broadcast("Canvas limpiado por todos los usuarios.\n", nil)
+	} else {
+		broadcast("No todos los usuarios han confirmado la limpieza del canvas.\n", nil)
+	}
+	pendingClear = false
 }
