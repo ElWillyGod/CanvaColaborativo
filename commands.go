@@ -105,13 +105,27 @@ func setEnvironment(args []string) int {
 }
 
 func saveCanvas(args []string) int {
-	// Aquí se puede implementar la lógica para guardar el canvas
-	return 0
+	if currentCanvas == nil {
+		return 0
+	}
+	err := saveCanvasValkey(currentCanvas)
+	if err != nil {
+		return 0
+	}
+	return 1
 }
 
 func loadCanvas(args []string) int {
-	// Aquí se puede implementar la lógica para cargar el canvas
-	return 0
+	if len(args) < 1 {
+		return 0
+	}
+	id := args[0]
+	canvas, err := loadCanvasFromValkey(id)
+	if err != nil {
+		return 0
+	}
+	currentCanvas = canvas
+	return 1
 }
 
 /*

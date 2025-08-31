@@ -20,7 +20,7 @@ func drawLine(x1, y1, x2, y2 int, char rune) {
 	err := dx + dy
 	for {
 		if x1 >= 0 && x1 < canvasWidth && y1 >= 0 && y1 < canvasHeight {
-			canvas[y1][x1] = char
+			currentCanvas.Matrix[y1][x1] = char
 		}
 		if x1 == x2 && y1 == y2 {
 			break
@@ -44,6 +44,18 @@ func abs(a int) int {
 	return a
 }
 
+func resetCanvas() {
+	canvasMu.Lock()
+	defer canvasMu.Unlock()
+	if currentCanvas != nil {
+		for i := range currentCanvas.Matrix {
+			for j := range currentCanvas.Matrix[i] {
+				currentCanvas.Matrix[i][j] = ' '
+			}
+		}
+	}
+}
+
 func waitForClearConfirmations() {
 	time.Sleep(clearDuration)
 	clearMu.Lock()
@@ -54,7 +66,7 @@ func waitForClearConfirmations() {
 	}
 
 	if len(clearConfirmations) == len(clients) {
-		initCanvas() //crea un canva nuevo (Canviar por un reset)
+		resetCanvas()
 		broadcast(renderCanvas(), nil)
 		broadcast("Canvas limpiado por todos los usuarios.\n", nil)
 	} else {

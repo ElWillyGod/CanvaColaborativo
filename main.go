@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -13,59 +14,69 @@ Servidor TCP
 Con soporte para telnet
 */
 
+// dimensiones del canvas
+var canvasWidth = 40
+var canvasHeight = 40
+var PORT = ":8080"
+
 /*
 Mapeo de conexiones de clientes
 que tan bueno puede ser esto con miles de usuarios???
 canviarlo a channels con worker o hacer sharding map
 */
-
 var (
 	clients   = make(map[net.Conn]bool)
 	clientsMu sync.RWMutex
 )
 
-// Dimensiones del canvas
+/*
+Canvas activo global - por ahora solo uno
+*/
+var (
+	currentCanvas *Canvas
+	canvasMu      sync.RWMutex
+)
 
-var canvasWidth = 40
-var canvasHeight = 40
-var PORT = ":8080"
-
-// Canvas: matriz de caracteres
-
-var canvas = make([][]rune, canvasHeight)
+/*
+Estructura del canvas
+*/
+type Canvas struct {
+	ID     string
+	Matrix [][]rune
+}
 
 /*
 Iniciar canvas Nuevo
-
-Esto se tiene que arreglar, podemos hacer que no se genere todo el canvas
-sino que asignar memoria dinamica solo a los bloques se escriban una especie de hashMap
-que pasa si dos usuarios quieren escribir al mismo tiempo en el mismo bloque, es posible implementar
-un sistema que bloquee solamente esas secciones del canvas.
-Como afecta esto al guardado de la informacion en redis?????
-Podria aplicar compresion de bloques de ASCII para las secciones???
 */
-
-func initCanvas() {
-	for i := 0; i < canvasHeight; i++ {
-		canvas[i] = make([]rune, canvasWidth)
-		for j := 0; j < canvasWidth; j++ {
-			canvas[i][j] = ' '
+func initCanvas(id string) *Canvas {
+	matrix := make([][]rune, canvasHeight)
+	for i := range matrix {
+		matrix[i] = make([]rune, canvasWidth)
+		for j := range matrix[i] {
+			matrix[i][j] = ' '
 		}
+	}
+	return &Canvas{
+		ID:     id,
+		Matrix: matrix,
 	}
 }
 
 /*
 Render canvas
 */
-
 func renderCanvas() string {
-	clientsMu.RLock()
-	defer clientsMu.RUnlock()
+	canvasMu.RLock()
+	defer canvasMu.RUnlock()
+
+	if currentCanvas == nil {
+		return "No hay canvas activo\n"
+	}
 
 	var output string
 	for i := 0; i < canvasHeight; i++ {
 		for j := 0; j < canvasWidth; j++ {
-			output += string(canvas[i][j])
+			output += string(currentCanvas.Matrix[i][j])
 		}
 		output += "\n"
 	}
@@ -75,10 +86,9 @@ func renderCanvas() string {
 /*
 Reenvío de mensajes a todos los clientes conectados.
 */
-
 func broadcast(message string, sender net.Conn) {
-	clientsMu.Lock()
-	defer clientsMu.Unlock()
+	clientsMu.RLock()
+	defer clientsMu.RUnlock()
 	for client := range clients {
 		if client != sender {
 			client.Write([]byte(message))
@@ -89,11 +99,15 @@ func broadcast(message string, sender net.Conn) {
 /*
 Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
 */
-
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		clientsMu.Lock()
+		delete(clients, conn)
+		clientsMu.Unlock()
+		conn.Close()
+		fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
+	}()
 
-	//conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
 
 	scanner := bufio.NewScanner(conn)
@@ -111,19 +125,14 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Comando no reconocido")
 			conn.Write([]byte("fijate bien que pusiste algo mal\n"))
 		}
-
-		//broadcast(conn.RemoteAddr().String()+" :"+line+"\n", conn)
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error al leer del cliente:", err)
 	}
-	fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
 }
 
 func main() {
-
 	// Creamos el listener
-	initCanvas()
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)
@@ -140,13 +149,55 @@ func main() {
 			continue
 		}
 
-		/*
-			logica de preguntar si quiere un nuevo canva o unirse a uno existente
-			esto implica saber cuales estan cargados y cuales estan en memoria
-		*/
+		// Solicitar ID de canvas o crear uno nuevo
+		conn.Write([]byte("Ingresa el ID del canvas o escribe 'nuevo' para crear uno nuevo: "))
 
+		scanner := bufio.NewScanner(conn)
+		if !scanner.Scan() {
+			conn.Close()
+			continue
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+
+		if input == "nuevo" {
+			// Crear nuevo canvas
+			id := generateCanvasID()
+			canvasMu.Lock()
+			currentCanvas = initCanvas(id)
+			canvasMu.Unlock()
+
+			// Guardar en Valkey
+			if err := saveCanvasValkey(currentCanvas); err != nil {
+				conn.Write([]byte("Error al guardar el canvas: " + err.Error() + "\n"))
+				conn.Close()
+				continue
+			}
+
+			conn.Write([]byte("Canvas nuevo creado con ID: " + id + "\n"))
+		} else {
+			// Intentar cargar canvas existente
+			canvas, err := loadCanvasFromValkey(input)
+			if err != nil {
+				conn.Write([]byte("No se pudo cargar el canvas. Creando uno nuevo...\n"))
+				id := generateCanvasID()
+				canvasMu.Lock()
+				currentCanvas = initCanvas(id)
+				canvasMu.Unlock()
+				saveCanvasValkey(currentCanvas)
+				conn.Write([]byte("Canvas nuevo creado con ID: " + id + "\n"))
+			} else {
+				canvasMu.Lock()
+				currentCanvas = canvas
+				canvasMu.Unlock()
+				conn.Write([]byte("Canvas cargado con ID: " + currentCanvas.ID + "\n"))
+			}
+		}
+
+		// Mostrar el canvas al usuario
 		conn.Write([]byte(renderCanvas()))
 
+		// Registrar cliente y manejar conexión
 		clientsMu.Lock()
 		clients[conn] = true
 		clientsMu.Unlock()

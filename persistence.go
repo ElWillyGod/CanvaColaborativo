@@ -13,3 +13,46 @@ package main
 	puede ser en JSON, BSON, XML Protobuf
 
 */
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+)
+
+var rdb = redis.NewClient(&redis.Options{
+	Addr: "localhost:6379",
+})
+
+func generateCanvasID() string {
+	return uuid.New().String()
+}
+
+func saveCanvasValkey(canvas *Canvas) error {
+	ctx := context.Background()
+	data, err := json.Marshal(canvas)
+	if err != nil {
+		return err
+	}
+	err = rdb.Set(ctx, "canvas:"+canvas.ID, data, 0).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func loadCanvasFromValkey(id string) (*Canvas, error) {
+	ctx := context.Background()
+	data, err := rdb.Get(ctx, "canvas:"+id).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var canvas Canvas
+	err = json.Unmarshal([]byte(data), &canvas)
+	if err != nil {
+		return nil, err
+	}
+	return &canvas, nil
+}
