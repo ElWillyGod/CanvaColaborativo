@@ -58,3 +58,19 @@ func (cg *CanvasGroup) broadcast(message string, sender net.Conn) {
 		}
 	}
 }
+
+// Renderizar canvas del grupo
+func (cg *CanvasGroup) renderCanvas() string {
+	if cg.Canvas == nil {
+		return "No hay canvas activo\n"
+	}
+
+	var output string
+	for i := 0; i < canvasHeight; i++ {
+		for j := 0; j < canvasWidth; j++ {
+			output += string(cg.Canvas.Matrix[i][j])
+		}
+		output += "\n"
+	}
+	return output
+}

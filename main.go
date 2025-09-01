@@ -65,23 +65,6 @@ func initCanvas(id string) *Canvas {
 /*
 Render canvas
 */
-func renderCanvas() string {
-	canvasMu.RLock()
-	defer canvasMu.RUnlock()
-
-	if currentCanvas == nil {
-		return "No hay canvas activo\n"
-	}
-
-	var output string
-	for i := 0; i < canvasHeight; i++ {
-		for j := 0; j < canvasWidth; j++ {
-			output += string(currentCanvas.Matrix[i][j])
-		}
-		output += "\n"
-	}
-	return output
-}
 
 /*
 Reenvío de mensajes a todos los clientes conectados.
@@ -100,15 +83,46 @@ func broadcast(message string, sender net.Conn) {
 Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
 */
 func handleConnection(conn net.Conn) {
+	var canvasGroup *CanvasGroup
+
 	defer func() {
-		clientsMu.Lock()
-		delete(clients, conn)
-		clientsMu.Unlock()
+		if canvasGroup != nil {
+			canvasGroup.removeClient(conn)
+		}
 		conn.Close()
 		fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
 	}()
 
 	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
+	conn.Write([]byte("ID del canvas o escribe 'nuevo': "))
+
+	scanner := bufio.NewScanner(conn)
+	if !scanner.Scan() {
+		return
+	}
+
+	input := strings.TrimSpace(scanner.Text())
+	var canvasID string
+
+	if input == "nuevo" {
+		canvasID = generateCanvasID()
+		canvasGroup = gestCanvas(canvasID)
+		saveCanvasValkey(canvasGroup.Canvas)
+		conn.Write([]byte("Canvas creado con ID: " + canvasID + "\n"))
+	} else {
+		canvas, err := loadCanvasFromValkey(input)
+		if err != nil {
+			canvasID = generateCanvasID()
+			canvasGroup = gestCanvas(canvasID)
+		} else {
+			canvasGroup = gestCanvas(input)
+			canvasGroup.Canvas = canvas
+		}
+		conn.Write([]byte("Canvas ID: " + canvasGroup.Canvas.ID + "\n"))
+	}
+
+	canvasGroup.addClient(conn)
+	conn.Write([]byte(canvasGroup.renderCanvas()))
 
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
@@ -132,7 +146,6 @@ func handleConnection(conn net.Conn) {
 }
 
 func main() {
-	// Creamos el listener
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)
@@ -148,59 +161,6 @@ func main() {
 			fmt.Println("Error al aceptar la conexión:", err)
 			continue
 		}
-
-		// Solicitar ID de canvas o crear uno nuevo
-		conn.Write([]byte("ID del canvas o escribe 'nuevo' para crear uno nuevo: "))
-
-		scanner := bufio.NewScanner(conn)
-		if !scanner.Scan() {
-			conn.Close()
-			continue
-		}
-
-		input := strings.TrimSpace(scanner.Text())
-
-		if input == "nuevo" {
-			// Crear nuevo canvas
-			id := generateCanvasID()
-			canvasMu.Lock()
-			currentCanvas = initCanvas(id)
-			canvasMu.Unlock()
-
-			// Guardar en Valkey
-			if err := saveCanvasValkey(currentCanvas); err != nil {
-				conn.Write([]byte("Error al guardar el canvas: " + err.Error() + "\n"))
-				conn.Close()
-				continue
-			}
-
-			conn.Write([]byte("Canvas nuevo creado con ID: " + id + "\n"))
-		} else {
-			// Intentar cargar canvas existente
-			canvas, err := loadCanvasFromValkey(input)
-			if err != nil {
-				conn.Write([]byte("No se pudo cargar el canvas. Creando uno nuevo...\n"))
-				id := generateCanvasID()
-				canvasMu.Lock()
-				currentCanvas = initCanvas(id)
-				canvasMu.Unlock()
-				saveCanvasValkey(currentCanvas)
-				conn.Write([]byte("Canvas nuevo creado con ID: " + id + "\n"))
-			} else {
-				canvasMu.Lock()
-				currentCanvas = canvas
-				canvasMu.Unlock()
-				conn.Write([]byte("Canvas cargado con ID: " + currentCanvas.ID + "\n"))
-			}
-		}
-
-		// Mostrar el canvas al usuario
-		conn.Write([]byte(renderCanvas()))
-
-		// Registrar cliente y manejar conexión
-		clientsMu.Lock()
-		clients[conn] = true
-		clientsMu.Unlock()
 
 		go handleConnection(conn)
 	}

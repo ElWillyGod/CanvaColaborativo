@@ -41,7 +41,7 @@ var (
 	clearMu            sync.Mutex
 )
 
-func isCommand(command string, extraArgs []string) int {
+func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) int {
 	// Aquí se puede implementar la lógica para verificar si el comando es válido
 	// y devolver y ejecutarlo
 
@@ -52,7 +52,7 @@ func isCommand(command string, extraArgs []string) int {
 	cmd := parts[0]
 	if fn, ok := commands[cmd]; ok {
 		args := append(parts[1:], extraArgs...)
-		return fn(args)
+		return fn(args, canvasGroup) // Pasar el grupo como parámetro
 	}
 	//fmt.Println("Comando no reconocido")
 	return 0
