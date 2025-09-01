@@ -150,7 +150,7 @@ func main() {
 		}
 
 		// Solicitar ID de canvas o crear uno nuevo
-		conn.Write([]byte("Ingresa el ID del canvas o escribe 'nuevo' para crear uno nuevo: "))
+		conn.Write([]byte("ID del canvas o escribe 'nuevo' para crear uno nuevo: "))
 
 		scanner := bufio.NewScanner(conn)
 		if !scanner.Scan() {
