@@ -124,7 +124,6 @@ func handleConnection(conn net.Conn) {
 	canvasGroup.addClient(conn)
 	conn.Write([]byte(canvasGroup.renderCanvas()))
 
-	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Println("Recibido:", line)
@@ -135,7 +134,7 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if isCommand(line, []string{conn.RemoteAddr().String()}) == 0 {
+		if isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup) == 0 {
 			fmt.Println("Comando no reconocido")
 			conn.Write([]byte("fijate bien que pusiste algo mal\n"))
 		}

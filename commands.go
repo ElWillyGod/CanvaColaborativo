@@ -20,7 +20,7 @@ type Command struct {
 	Execute    func(args []string) int
 }
 
-var commands = map[string]func(args []string) int{
+var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/triangle": triangleCommand,
 	"/line":     lineCommand,
 	//////////////////////////////////////////////////
@@ -58,7 +58,7 @@ func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) int
 	return 0
 }
 
-func triangleCommand(args []string) int {
+func triangleCommand(args []string, canvasGroup *CanvasGroup) int {
 	// Comando de Triángulo
 	if len(args) < 7 {
 		return 0
@@ -71,15 +71,15 @@ func triangleCommand(args []string) int {
 	y3, _ := strconv.Atoi(args[5])
 	char := []rune(args[6])[0]
 
-	drawLine(x1, y1, x2, y2, char)
-	drawLine(x2, y2, x3, y3, char)
-	drawLine(x3, y3, x1, y1, char)
+	drawLine(x1, y1, x2, y2, char, canvasGroup)
+	drawLine(x2, y2, x3, y3, char, canvasGroup)
+	drawLine(x3, y3, x1, y1, char, canvasGroup)
 
-	broadcast(renderCanvas(), nil)
+	canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
 	return 1
 }
 
-func lineCommand(args []string) int {
+func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 	// Comando de Línea
 	fmt.Println("llego a line")
 	if len(args) < 5 {
@@ -94,28 +94,28 @@ func lineCommand(args []string) int {
 	char := []rune(args[4])[0]
 
 	//fmt.Println("anda?")
-	drawLine(x1, y1, x2, y2, char)
-	broadcast(renderCanvas(), nil)
+	drawLine(x1, y1, x2, y2, char, canvasGroup)
+	canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
 	return 1
 }
 
-func setEnvironment(args []string) int {
+func setEnvironment(args []string, canvasGroup *CanvasGroup) int {
 	// Aquí se puede implementar la lógica para establecer el entorno
 	return 0
 }
 
-func saveCanvas(args []string) int {
+func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if currentCanvas == nil {
 		return 0
 	}
-	err := saveCanvasValkey(currentCanvas)
+	err := saveCanvasValkey(canvasGroup.Canvas)
 	if err != nil {
 		return 0
 	}
 	return 1
 }
 
-func loadCanvas(args []string) int {
+func loadCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if len(args) < 1 {
 		return 0
 	}
@@ -124,7 +124,7 @@ func loadCanvas(args []string) int {
 	if err != nil {
 		return 0
 	}
-	currentCanvas = canvas
+	canvasGroup.Canvas = canvas
 	return 1
 }
 
@@ -134,7 +134,7 @@ func loadCanvas(args []string) int {
 	no quiero modificar el handleConnection, entonces voy a meter un timeout
 */
 
-func clearCanvas(args []string) int {
+func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 
 	clearMu.Lock()
 	defer clearMu.Unlock()
@@ -143,8 +143,8 @@ func clearCanvas(args []string) int {
 		pendingClear = true
 		clearConfirmations = make(map[string]bool)
 		clearStartTime = time.Now()
-		broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
-		go waitForClearConfirmations()
+		canvasGroup.broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
+		go waitForClearConfirmations(canvasGroup)
 		return 1
 
 	}
