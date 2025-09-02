@@ -110,6 +110,12 @@ func handleConnection(conn net.Conn) {
 		saveCanvasValkey(canvasGroup.Canvas)
 		conn.Write([]byte("Canvas creado con ID: " + canvasID + "\n"))
 	} else {
+		///////////////////////////////////////////////////
+		/*
+			Implementar el modoelo de guardado hibrido, para guardar las cosas en archivos
+			binarios Protobuf
+		*/
+		///////////////////////////////////////////////////
 		canvas, err := loadCanvasFromValkey(input)
 		if err != nil {
 			canvasID = generateCanvasID()

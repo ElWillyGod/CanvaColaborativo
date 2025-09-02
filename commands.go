@@ -105,7 +105,7 @@ func setEnvironment(args []string, canvasGroup *CanvasGroup) int {
 }
 
 func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
-	if currentCanvas == nil {
+	if canvasGroup.Canvas == nil {
 		return 0
 	}
 	err := saveCanvasValkey(canvasGroup.Canvas)
