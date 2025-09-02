@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -33,13 +32,7 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 ///////////////////////////////////////////////////////
 // cositas para el clear con confirmacion
 
-var (
-	pendingClear       = false
-	clearConfirmations = make(map[string]bool)
-	clearStartTime     time.Time
-	clearDuration      = 10 * time.Second
-	clearMu            sync.Mutex
-)
+var clearDuration = 10 * time.Second
 
 func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) int {
 	// Aquí se puede implementar la lógica para verificar si el comando es válido
@@ -135,24 +128,29 @@ func loadCanvas(args []string, canvasGroup *CanvasGroup) int {
 */
 
 func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
+	canvasGroup.Mutex.Lock()
+	defer canvasGroup.Mutex.Unlock()
 
-	clearMu.Lock()
-	defer clearMu.Unlock()
+	// Si no hay limpieza pendiente, iniciar una nueva
+	if !canvasGroup.PendingClear {
+		canvasGroup.PendingClear = true
+		canvasGroup.ClearConfirmations = make(map[string]bool)
+		canvasGroup.ClearStartTime = time.Now()
 
-	if !pendingClear {
-		pendingClear = true
-		clearConfirmations = make(map[string]bool)
-		clearStartTime = time.Now()
-		canvasGroup.broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
+		go func() {
+			canvasGroup.broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
+		}()
+
 		go waitForClearConfirmations(canvasGroup)
 		return 1
-
 	}
 
-	if args[0] == "yes" && len(args) > 1 {
+	// Si hay confirmación pendiente y el usuario responde "yes"
+	if len(args) > 0 && args[0] == "yes" && len(args) > 1 {
 		userID := args[1]
-		clearConfirmations[userID] = true
+		canvasGroup.ClearConfirmations[userID] = true
+		return 1
 	}
-	return 1
 
+	return 0
 }

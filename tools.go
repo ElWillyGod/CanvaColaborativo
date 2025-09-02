@@ -48,8 +48,6 @@ func abs(a int) int {
 }
 
 func resetCanvas(canvasGroup *CanvasGroup) {
-	canvasGroup.Mutex.Lock()
-	defer canvasGroup.Mutex.Unlock()
 	if canvasGroup.Canvas != nil {
 		for i := range canvasGroup.Canvas.Matrix {
 			for j := range canvasGroup.Canvas.Matrix[i] {
@@ -61,23 +59,39 @@ func resetCanvas(canvasGroup *CanvasGroup) {
 
 func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 	time.Sleep(clearDuration)
-	clearMu.Lock()
-	defer clearMu.Unlock()
 
-	if !pendingClear {
+	// Versión simple sin mutex anidados
+	canvasGroup.Mutex.Lock()
+	defer canvasGroup.Mutex.Unlock()
+
+	if !canvasGroup.PendingClear {
+		canvasGroup.Mutex.Unlock()
 		return
 	}
 
-	canvasGroup.Mutex.RLock()
 	numClients := len(canvasGroup.Clients)
-	canvasGroup.Mutex.RUnlock()
+	numConfirmations := len(canvasGroup.ClearConfirmations)
+	canvasGroup.PendingClear = false
 
-	if len(clearConfirmations) == numClients {
+	shouldClear := numConfirmations == numClients && numClients > 0
+
+	// Preparar datos necesarios para después del unlock
+	var canvasRendered string
+	if shouldClear {
 		resetCanvas(canvasGroup)
-		canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
-		canvasGroup.broadcast("Canvas limpiado por todos los usuarios.\n", nil)
-	} else {
-		broadcast("No todos los usuarios han confirmado la limpieza del canvas.\n", nil)
+		canvasRendered = canvasGroup.renderCanvas()
 	}
-	pendingClear = false
+
+	// El defer unlock se ejecutará automáticamente aquí
+	// Pero necesitamos hacer los broadcasts DESPUÉS del unlock
+	// Solución: usar una goroutine
+	go func() {
+		if shouldClear {
+			canvasGroup.broadcast(canvasRendered, nil)
+			canvasGroup.broadcast("Canvas limpiado.\n", nil)
+			//saveCanvasValkey(canvasGroup.Canvas)
+		} else {
+			canvasGroup.broadcast("Limpieza cancelada.\n", nil)
+		}
+	}()
 }

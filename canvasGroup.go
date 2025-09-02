@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"sync"
+	"time"
 )
 
 /*
@@ -11,29 +12,34 @@ esctructuras y logica
 */
 
 type CanvasGroup struct {
-	Canvas  *Canvas
-	Clients map[net.Conn]bool
-	Mutex   sync.RWMutex
+	Canvas             *Canvas
+	Clients            map[net.Conn]bool
+	Mutex              sync.RWMutex
+	PendingClear       bool
+	ClearConfirmations map[string]bool
+	ClearStartTime     time.Time
 }
 
 var (
-	canvasGroup = make(map[string]*CanvasGroup)
-	canvasesMu  sync.RWMutex
+	canvasGroups = make(map[string]*CanvasGroup)
+	canvasesMu   sync.RWMutex
 )
 
 func gestCanvas(canvasID string) *CanvasGroup {
 	canvasesMu.Lock()
 	defer canvasesMu.Unlock()
 
-	if group, exits := canvasGroup[canvasID]; exits {
+	if group, exits := canvasGroups[canvasID]; exits {
 		return group
 	}
 
 	group := &CanvasGroup{
-		Canvas:  initCanvas(canvasID),
-		Clients: make(map[net.Conn]bool),
+		Canvas:             initCanvas(canvasID),
+		Clients:            make(map[net.Conn]bool),
+		PendingClear:       false,
+		ClearConfirmations: make(map[string]bool),
 	}
-	canvasGroup[canvasID] = group
+	canvasGroups[canvasID] = group
 	return group
 }
 

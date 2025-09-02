@@ -30,14 +30,6 @@ var (
 )
 
 /*
-Canvas activo global - por ahora solo uno
-*/
-var (
-	currentCanvas *Canvas
-	canvasMu      sync.RWMutex
-)
-
-/*
 Estructura del canvas
 */
 type Canvas struct {
