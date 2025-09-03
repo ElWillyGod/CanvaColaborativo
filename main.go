@@ -105,7 +105,7 @@ func handleConnection(conn net.Conn) {
 		///////////////////////////////////////////////////
 		/*
 			Implementar el modoelo de guardado hibrido, para guardar las cosas en archivos
-			binarios Protobuf
+			binarios Protobuf o XML
 		*/
 		///////////////////////////////////////////////////
 		canvas, err := loadCanvasFromValkey(input)

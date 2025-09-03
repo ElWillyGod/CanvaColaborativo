@@ -11,6 +11,8 @@ import (
 	Comandos para la edicion del Canvas
 	Seguramente sea una function pointer
 	operaciones básicas de dibujo (puntos/figuras simples) y limpieza
+
+	Me falta el comando para el quit del user jaja
 */
 
 type Command struct {
@@ -27,6 +29,7 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/save":  saveCanvas,
 	"/load":  loadCanvas,
 	"/clear": clearCanvas,
+	"/help":  helpCanvas,
 }
 
 ///////////////////////////////////////////////////////
@@ -152,5 +155,12 @@ func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 		return 1
 	}
 
+	return 0
+}
+
+/*
+La func de help
+*/
+func helpCanvas(args []string, canvasGrup *CanvasGroup) int {
 	return 0
 }
