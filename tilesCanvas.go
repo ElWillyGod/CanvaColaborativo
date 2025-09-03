@@ -8,4 +8,8 @@ package main
    	matriz de run-length (RLE) por filas para comprimir secuencias de caracteres iguales (ideal para ASCII).
   	Copy-on-write para snapshots (ver §4).
 	Beneficio: baja uso de RAM, updates localizados, snapshots y “undos” baratos.
+
+	esto en palabras normales consiste en dividir la matriz en partes y
+	actualizar secciones particulares de esta matris, bloqueando esas micro partes
+
 */
