@@ -82,7 +82,7 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 		canvasRendered = canvasGroup.renderCanvas()
 	}
 
-	// El defer unlock se ejecutará automáticamente aquí
+	// defer unlock se ejecutará aca
 	// Pero necesitamos hacer los broadcasts DESPUÉS del unlock
 	// Solución: usar una goroutine
 	go func() {
