@@ -55,12 +55,9 @@ func initCanvas(id string) *Canvas {
 }
 
 /*
-Render canvas
-*/
-
-/*
 Reenvío de mensajes a todos los clientes conectados.
 */
+
 func broadcast(message string, sender net.Conn) {
 	clientsMu.RLock()
 	defer clientsMu.RUnlock()
@@ -118,6 +115,7 @@ func handleConnection(conn net.Conn) {
 		}
 		conn.Write([]byte("Canvas ID: " + canvasGroup.Canvas.ID + "\n"))
 	}
+	fmt.Println("ID: " + canvasGroup.Canvas.ID + "\n")
 
 	canvasGroup.addClient(conn)
 	conn.Write([]byte(canvasGroup.renderCanvas()))
@@ -133,8 +131,7 @@ func handleConnection(conn net.Conn) {
 		}
 
 		if isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup) == 0 {
-			fmt.Println("Comando no reconocido")
-			conn.Write([]byte("fijate bien que pusiste algo mal\n"))
+			canvasGroup.broadcast(line+"\n", conn)
 		}
 	}
 	if err := scanner.Err(); err != nil {

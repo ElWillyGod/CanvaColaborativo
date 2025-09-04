@@ -4,6 +4,8 @@ import "time"
 
 /*
 	Algoritmo de Bresenham para dibujar líneas
+
+	Modificar el algoritmo para meter lo de los characters ANSI
 */
 
 func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {

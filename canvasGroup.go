@@ -66,6 +66,7 @@ func (cg *CanvasGroup) broadcast(message string, sender net.Conn) {
 }
 
 // Renderizar canvas del grupo
+// Esto puede cambiar para los ANSI
 func (cg *CanvasGroup) renderCanvas() string {
 	if cg.Canvas == nil {
 		return "No hay canvas activo\n"

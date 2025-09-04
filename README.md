@@ -46,3 +46,31 @@ Motor de canvas **tileado + esparso** (alto rendimiento)
   * Dentro de cada tile, **matriz de run-length (RLE) por filas** para comprimir secuencias de caracteres iguales (ideal para ASCII).
   * **Copy-on-write** para snapshots (ver §4).
 * **Beneficio:** baja uso de RAM, updates localizados, snapshots y “undos” baratos.
+
+
+
+Compresión y optimización de tráfico
+
+Implementar compresión delta: en lugar de mandar todo el canvas, enviar solo las diferencias (patches ASCII).
+
+Podés mostrar cómo reducís ancho de banda para miles de usuarios concurrentes.
+
+esto se puede hacer con telnet?
+
+Opciones para “verlo” bien en Telnet
+
+Modo textual (más simple):
+
+Los usuarios ven mensajes tipo UPDATE 10 5 X.
+
+No se actualiza el canvas en pantalla automáticamente, el usuario interpreta.
+
+Esto es 100% compatible con Telnet.
+
+Modo gráfico ASCII (más desafiante):
+
+Podés usar códigos ANSI de terminal (telnet lo soporta) para mover el cursor a (10,5) y dibujar la X.
+
+Entonces el usuario ve cómo el canvas cambia en vivo sin redibujar todo.
+
+Esto sí da el efecto “canvas en tiempo real con deltas”.
