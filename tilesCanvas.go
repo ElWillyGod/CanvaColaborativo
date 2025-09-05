@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"sync"
 )
 
@@ -104,4 +105,36 @@ func (c *Canvas) getChar(x, y int) rune {
 	}
 
 	return ' '
+}
+
+func (c *Canvas) render(width, height int) string {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	////////////////////////////////////////////////
+
+	var buf bytes.Buffer
+	buf.Grow(width * height * 2)
+
+	grid := make([][]rune, height)
+	for i := range grid {
+		grid[i] = make([]rune, width)
+
+		for j := range grid[i] {
+			grid[i][j] = ' '
+		}
+	}
+
+	for id, tile := range c.tiles {
+		starX := id.X * TileWidth
+		starY := id.Y * TileHeight
+
+		for i := 0; i < TileHeight; i++ {
+			for j := 0; j < TileWidth; j++ {
+				absY, absX := starY+i, starX+j
+				if absY < height && absX < width {
+					grid[absY][absX] = tile.data[i*TileWidth+j]
+				}
+			}
+		}
+	}
 }
