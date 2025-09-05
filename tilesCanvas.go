@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 /*
 	Idea: dividir el canvas en **tiles** (p. ej. 64×32). Solo asignás memoria para tiles “tocados”.
 
@@ -13,3 +15,65 @@ package main
 	actualizar secciones particulares de esta matris, bloqueando esas micro partes
 
 */
+
+const (
+	TileWidth  = 64
+	TileHeight = 32
+)
+
+type TileID struct {
+	X, Y int
+}
+
+type Tile struct {
+	data []rune
+}
+
+type Canvas struct {
+	ID    string
+	mutex sync.Mutex
+	tiles map[TileID]*Tile
+}
+
+func newCanvas(id string) *Canvas {
+	return &Canvas{
+		ID:    id,
+		tiles: make(map[TileID]*Tile),
+	}
+}
+
+func newTile() *Tile {
+	t := &Tile{
+		data: make([]rune, TileWidth*TileHeight),
+	}
+	for i := range t.data {
+		t.data[i] = ' '
+	}
+
+	return t
+}
+
+func (c *Canvas) setChar(x, y int, char rune) {
+	if x < 0 || y < 0 {
+		return
+	}
+
+	tileID := TileID{X: x / TileHeight, Y: y / TileWidth}
+	localX := x % TileWidth
+	localY := y & TileHeight
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	tile, ok := c.tiles[tileID]
+
+	if !ok {
+		tile = newTile()
+		c.tiles[tileID] = tile
+	}
+
+	index := localY*TileWidth + localX
+	if index < len(tile.data) {
+		tile.data[index] = char
+	}
+}

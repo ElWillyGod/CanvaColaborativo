@@ -74,3 +74,21 @@ Podés usar códigos ANSI de terminal (telnet lo soporta) para mover el cursor a
 Entonces el usuario ve cómo el canvas cambia en vivo sin redibujar todo.
 
 Esto sí da el efecto “canvas en tiempo real con deltas”.
+///////////////////////////////////////////////////
+
+Indexación Espacial con Quadtrees para Operaciones de Área
+En lugar de (o además de) tu map[TileID]*Tile, puedes implementar un Quadtree para indexar los tiles que contienen datos.
+
+Qué es: Un Quadtree es una estructura de datos en árbol usada para particionar un espacio 2D, subdividiendo recursivamente una región en cuatro cuadrantes.
+
+////////////////////////////////////////////////////
+Agrupación de Paquetes (Packet Batching) y Ticks del Servidor
+Enviar cada pequeña actualización en su propio paquete TCP es extremadamente ineficiente debido a la sobrecarga de las cabeceras TCP/IP (40-60 bytes por paquete para enviar a veces un solo byte de datos).
+
+Qué es: En lugar de que el goroutine de un cliente envíe datos inmediatamente después de una modificación, los coloca en un buffer de salida compartido o en un canal. Un único goroutine "broadcaster" se despierta a intervalos fijos (por ejemplo, cada 20-50 milisegundos, un "tick"), recoge todas las actualizaciones pendientes para cada cliente y las envía en un solo paquete grande.
+Por qué sorprende: Es una implementación a nivel de aplicación del Algoritmo de Nagle, una optimización de red fundamental. Muestra una comprensión profunda de cómo funciona TCP y cómo evitar la congestión y el overhead.
+Implementación:
+Cada cliente tiene un canal de salida (chan []byte).
+Cuando el canvas se modifica, se generan los "deltas" y se envían a los canales de todos los clientes suscritos.
+El goroutine de escritura de cada cliente no envía inmediatamente. Intenta leer del canal en un bucle, agrupando todos los mensajes que pueda durante un breve período de tiempo (o hasta un tamaño máximo) antes de hacer una única llamada a conn.Write().
+3

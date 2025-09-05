@@ -31,12 +31,12 @@ var (
 
 /*
 Estructura del canvas
-*/
+
 type Canvas struct {
 	ID     string
 	Matrix [][]rune
 }
-
+*/
 /*
 Iniciar canvas Nuevo
 */
