@@ -96,7 +96,7 @@ func handleConnection(conn net.Conn) {
 	if input == "nuevo" {
 		canvasID = generateCanvasID()
 		canvasGroup = gestCanvas(canvasID)
-		saveCanvasValkey(canvasGroup.Canvas)
+		//saveCanvasValkey(canvasGroup.Canvas)
 		conn.Write([]byte("Canvas creado con ID: " + canvasID + "\n"))
 	} else {
 		///////////////////////////////////////////////////

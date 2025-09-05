@@ -34,7 +34,7 @@ func gestCanvas(canvasID string) *CanvasGroup {
 	}
 
 	group := &CanvasGroup{
-		Canvas:             initCanvas(canvasID),
+		Canvas:             newCanvas(canvasID),
 		Clients:            make(map[net.Conn]bool),
 		PendingClear:       false,
 		ClearConfirmations: make(map[string]bool),
@@ -71,13 +71,5 @@ func (cg *CanvasGroup) renderCanvas() string {
 	if cg.Canvas == nil {
 		return "No hay canvas activo\n"
 	}
-
-	var output string
-	for i := 0; i < canvasHeight; i++ {
-		for j := 0; j < canvasWidth; j++ {
-			output += string(cg.Canvas.Matrix[i][j])
-		}
-		output += "\n"
-	}
-	return output
+	return cg.Canvas.render(canvasWidth, canvasHeight)
 }
