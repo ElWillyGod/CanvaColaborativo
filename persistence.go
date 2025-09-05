@@ -25,6 +25,9 @@ var rdb = redis.NewClient(&redis.Options{
 	Addr: "localhost:6379",
 })
 
+/*
+Esto tengo que modificarlo para que ande con los tiles nuevos
+*/
 func generateCanvasID() string {
 	return uuid.New().String()
 }
