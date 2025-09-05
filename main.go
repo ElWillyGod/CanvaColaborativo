@@ -39,7 +39,7 @@ type Canvas struct {
 */
 /*
 Iniciar canvas Nuevo
-*/
+
 func initCanvas(id string) *Canvas {
 	matrix := make([][]rune, canvasHeight)
 	for i := range matrix {
@@ -53,7 +53,7 @@ func initCanvas(id string) *Canvas {
 		Matrix: matrix,
 	}
 }
-
+*/
 /*
 Reenvío de mensajes a todos los clientes conectados.
 */

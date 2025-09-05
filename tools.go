@@ -25,7 +25,7 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
 	defer canvasGroup.Mutex.Unlock()
 	for {
 		if x1 >= 0 && x1 < canvasWidth && y1 >= 0 && y1 < canvasHeight {
-			canvasGroup.Canvas.Matrix[y1][x1] = char
+			canvasGroup.Canvas.setChar(x1, x2, char)
 		}
 		if x1 == x2 && y1 == y2 {
 			break
@@ -50,13 +50,11 @@ func abs(a int) int {
 }
 
 func resetCanvas(canvasGroup *CanvasGroup) {
-	if canvasGroup.Canvas != nil {
-		for i := range canvasGroup.Canvas.Matrix {
-			for j := range canvasGroup.Canvas.Matrix[i] {
-				canvasGroup.Canvas.Matrix[i][j] = ' '
-			}
-		}
-	}
+	canvas := canvasGroup.Canvas
+	canvas.mutex.Lock()
+	defer canvas.mutex.Unlock()
+
+	canvas.tiles = map[TileID]*Tile{}
 }
 
 func waitForClearConfirmations(canvasGroup *CanvasGroup) {
