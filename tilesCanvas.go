@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 /*
 	Idea: dividir el canvas en **tiles** (p. ej. 64×32). Solo asignás memoria para tiles “tocados”.
@@ -31,7 +33,7 @@ type Tile struct {
 
 type Canvas struct {
 	ID    string
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	tiles map[TileID]*Tile
 }
 
@@ -76,4 +78,30 @@ func (c *Canvas) setChar(x, y int, char rune) {
 	if index < len(tile.data) {
 		tile.data[index] = char
 	}
+}
+
+func (c *Canvas) getChar(x, y int) rune {
+	if x < 0 || y < 0 {
+		return ' '
+	}
+
+	tileID := TileID{X: x / TileWidth, Y: y / TileHeight}
+	localX := x % TileWidth
+	localY := y % TileHeight
+
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	tile, ok := c.tiles[tileID]
+
+	if !ok {
+		return ' '
+	}
+
+	index := localY*TileWidth + localX
+	if index < len(tile.data) {
+		return tile.data[index]
+	}
+
+	return ' '
 }
