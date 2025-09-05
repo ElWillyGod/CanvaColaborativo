@@ -137,4 +137,11 @@ func (c *Canvas) render(width, height int) string {
 			}
 		}
 	}
+
+	for y := 0; y < height; y++ {
+		buf.WriteString(string(grid[y]))
+		buf.WriteRune('\n')
+	}
+
+	return buf.String()
 }
