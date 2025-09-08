@@ -15,8 +15,8 @@ Con soporte para telnet
 */
 
 // dimensiones del canvas
-var canvasWidth = 80
-var canvasHeight = 80
+var canvasWidth int
+var canvasHeight int
 var PORT = ":8080"
 
 /*
@@ -89,82 +89,92 @@ func handleConnection(conn net.Conn) {
 	}()
 
 	fmt.Println("Nueva conexión desde", conn.RemoteAddr())
-	conn.Write([]byte("ID del canvas o escribe 'nuevo': "))
 
-	scanner := bufio.NewScanner(conn)
-	if !scanner.Scan() {
-		return
-	}
+SESSON_LOOP:
+	for {
 
-	input := strings.TrimSpace(scanner.Text())
-	var canvasID string
+		if canvasGroup != nil {
+			canvasGroup.removeClient(conn)
+		}
 
-	if input == "nuevo" {
-		canvasID = generateCanvasID()
-		canvasGroup = gestCanvas(canvasID)
-		//saveCanvasValkey(canvasGroup.Canvas)
-		conn.Write([]byte("Canvas creado con ID: " + canvasID + "\n"))
-	} else {
-		///////////////////////////////////////////////////
-		/*
-			Implementar el modoelo de guardado hibrido, para guardar las cosas en archivos
-			binarios Protobuf o XML
-		*/
-		///////////////////////////////////////////////////
-		canvas, err := loadCanvasFromValkey(input)
-		if err != nil {
+		conn.Write([]byte("ID del canvas o escribe 'nuevo': "))
+
+		scanner := bufio.NewScanner(conn)
+		if !scanner.Scan() {
+			return
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+		var canvasID string
+
+		if input == "nuevo" {
 			canvasID = generateCanvasID()
 			canvasGroup = gestCanvas(canvasID)
+			//saveCanvasValkey(canvasGroup.Canvas)
+			conn.Write([]byte("Canvas creado con ID: " + canvasID + "\n"))
 		} else {
-			canvasGroup = gestCanvas(input)
-			canvasGroup.Canvas = canvas
-		}
-		conn.Write([]byte("Canvas ID: " + canvasGroup.Canvas.ID + "\n"))
-	}
-	fmt.Println("ID: " + canvasGroup.Canvas.ID + "\n")
-
-	canvasGroup.addClient(conn)
-	conn.Write([]byte(canvasGroup.renderCanvas()))
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println("Recibido:", line)
-
-		if !allowCommand(conn) {
-			fmt.Println("Demasiados comandos enviados")
-			conn.Write([]byte("afloja la moto flaco\n"))
-			continue
-		}
-
-		// isCommand devuelve 1 si fue un comando de dibujo que modificó el canvas.
-		commandResult := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
-
-		if commandResult == 0 {
-			// Si es un mensaje de chat (o comando que no modifica), solo hacer broadcast.
-			canvasGroup.broadcast(line+"\n", conn)
-		} else {
-			// Si fue un comando de dibujo (resultado 1):
-			// 1. Renderizar el nuevo estado del canvas.
-			canvasRendered := canvasGroup.renderCanvas()
-
-			// 2. Difundir el canvas actualizado a TODOS los clientes.
-			canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
-
-			// 3. Guardar el estado en la base de datos.
-			err := saveCanvasValkey(canvasGroup.Canvas)
+			///////////////////////////////////////////////////
+			/*
+				Implementar el modoelo de guardado hibrido, para guardar las cosas en archivos
+				binarios Protobuf o XML
+			*/
+			///////////////////////////////////////////////////
+			canvas, err := loadCanvasFromValkey(input)
 			if err != nil {
-				fmt.Println("Error al autoguardar el canvas:", err)
-				// Opcional: notificar al usuario del error de guardado.
-				conn.Write([]byte("Error al guardar el canvas en la base de datos.\n"))
+				canvasID = generateCanvasID()
+				canvasGroup = gestCanvas(canvasID)
+			} else {
+				canvasGroup = gestCanvas(input)
+				canvasGroup.Canvas = canvas
+			}
+			conn.Write([]byte("Canvas ID: " + canvasGroup.Canvas.ID + "\n"))
+		}
+		fmt.Println("ID: " + canvasGroup.Canvas.ID + "\n")
+
+		canvasGroup.addClient(conn)
+		conn.Write([]byte(canvasGroup.renderCanvas()))
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			fmt.Println("Recibido:", line)
+
+			if !allowCommand(conn) {
+				fmt.Println("Demasiados comandos enviados")
+				conn.Write([]byte("afloja la moto flaco\n"))
+				continue
+			}
+
+			commandResult := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
+
+			if commandResult == 0 {
+				canvasGroup.broadcast(line+"\n", conn)
+			}
+			if commandResult == 1 {
+
+				canvasRendered := canvasGroup.renderCanvas()
+				canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
+
+				err := saveCanvasValkey(canvasGroup.Canvas)
+				if err != nil {
+					fmt.Println("Error al autoguardar el canvas:", err)
+					conn.Write([]byte("Error al guardar el canvas en la base de datos.\n"))
+				}
+			}
+			if commandResult == 2 {
+				continue SESSON_LOOP
 			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error al leer del cliente:", err)
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error al leer del cliente:", err)
+		}
 	}
 }
 
 func main() {
+
+	canvasWidth = getEnv("CANVAS_WIDTH", 80)
+	canvasHeight = getEnv("CANVAS_HEIGHT", 40)
+
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)

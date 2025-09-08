@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -99,6 +102,19 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 			canvasGroup.broadcast("Limpieza cancelada.\n", nil)
 		}
 	}()
+}
+
+func getEnv(name string, defaultValue int) int {
+	starValue := os.Getenv(name)
+	if starValue == "" {
+		return defaultValue
+	}
+	intValue, err := strconv.Atoi(starValue)
+	if err != nil {
+		fmt.Printf("algo paso")
+		return defaultValue
+	}
+	return intValue
 }
 
 /*

@@ -115,13 +115,7 @@ func loadCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if len(args) < 1 {
 		return 0
 	}
-	id := args[0]
-	canvas, err := loadCanvasFromValkey(id)
-	if err != nil {
-		return 0
-	}
-	canvasGroup.Canvas = canvas
-	return 1
+	return 2
 }
 
 /*
