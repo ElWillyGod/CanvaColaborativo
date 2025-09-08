@@ -15,8 +15,8 @@ Con soporte para telnet
 */
 
 // dimensiones del canvas
-var canvasWidth = 40
-var canvasHeight = 40
+var canvasWidth = 80
+var canvasHeight = 80
 var PORT = ":8080"
 
 /*

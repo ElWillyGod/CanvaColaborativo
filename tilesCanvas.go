@@ -20,8 +20,8 @@ import (
 */
 
 const (
-	TileWidth  = 64
-	TileHeight = 32
+	TileWidth  = 16
+	TileHeight = 8
 )
 
 type TileID struct {
@@ -29,13 +29,14 @@ type TileID struct {
 }
 
 type Tile struct {
-	Data []rune
+	mutex sync.RWMutex
+	Data  []rune
 }
 
 type Canvas struct {
-	ID    string
-	mutex sync.RWMutex
-	tiles map[TileID]*Tile
+	ID          string
+	mutexCanvas sync.RWMutex
+	tiles       map[TileID]*Tile
 }
 
 func newCanvas(id string) *Canvas {
@@ -62,23 +63,31 @@ func (c *Canvas) setChar(x, y int, char rune) {
 	}
 
 	tileID := TileID{X: x / TileWidth, Y: y / TileHeight}
-	localX := x % TileWidth
-	localY := y % TileHeight
 
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
+	c.mutexCanvas.RLock()
 	tile, ok := c.tiles[tileID]
+	c.mutexCanvas.RUnlock()
 
 	if !ok {
-		tile = newTile()
-		c.tiles[tileID] = tile
+		c.mutexCanvas.Lock()
+
+		tile, ok = c.tiles[tileID]
+
+		if !ok {
+			tile = newTile()
+			c.tiles[tileID] = tile
+		}
+		c.mutexCanvas.Unlock()
 	}
+	tile.mutex.Lock()
+	localX := x % TileWidth
+	localY := y % TileHeight
 
 	index := localY*TileWidth + localX
 	if index < len(tile.Data) {
 		tile.Data[index] = char
 	}
+	tile.mutex.Unlock()
 }
 
 func (c *Canvas) getChar(x, y int) rune {
@@ -87,18 +96,22 @@ func (c *Canvas) getChar(x, y int) rune {
 	}
 
 	tileID := TileID{X: x / TileWidth, Y: y / TileHeight}
-	localX := x % TileWidth
-	localY := y % TileHeight
 
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
+	// Bloqueo de lectura del canvas para acceder al mapa
+	c.mutexCanvas.RLock()
 	tile, ok := c.tiles[tileID]
+	c.mutexCanvas.RUnlock()
 
 	if !ok {
 		return ' '
 	}
 
+	// Bloqueo de lectura SOLO del tile para leer sus datos
+	tile.mutex.RLock()
+	defer tile.mutex.RUnlock()
+
+	localX := x % TileWidth
+	localY := y % TileHeight
 	index := localY*TileWidth + localX
 	if index < len(tile.Data) {
 		return tile.Data[index]
@@ -108,8 +121,8 @@ func (c *Canvas) getChar(x, y int) rune {
 }
 
 func (c *Canvas) render(width, height int) string {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.mutexCanvas.RLock()
+	defer c.mutexCanvas.RUnlock()
 	////////////////////////////////////////////////
 
 	var buf bytes.Buffer
@@ -128,6 +141,8 @@ func (c *Canvas) render(width, height int) string {
 		starX := id.X * TileWidth
 		starY := id.Y * TileHeight
 
+		tile.mutex.RLock()
+
 		for i := 0; i < TileHeight; i++ {
 			for j := 0; j < TileWidth; j++ {
 				absY, absX := starY+i, starX+j
@@ -136,6 +151,7 @@ func (c *Canvas) render(width, height int) string {
 				}
 			}
 		}
+		tile.mutex.RUnlock()
 	}
 
 	for y := 0; y < height; y++ {

@@ -37,8 +37,8 @@ func generateCanvasID() string {
 func saveCanvasValkey(canvas *Canvas) error {
 	ctx := context.Background()
 
-	canvas.mutex.RLock()
-	defer canvas.mutex.RUnlock()
+	canvas.mutexCanvas.RLock()
+	defer canvas.mutexCanvas.RUnlock()
 
 	// Usamos un buffer para la codificación binaria
 	var buffer bytes.Buffer

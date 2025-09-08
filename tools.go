@@ -49,8 +49,8 @@ func abs(a int) int {
 
 func resetCanvas(canvasGroup *CanvasGroup) {
 	canvas := canvasGroup.Canvas
-	canvas.mutex.Lock()
-	defer canvas.mutex.Unlock()
+	canvas.mutexCanvas.Lock()
+	defer canvas.mutexCanvas.Unlock()
 
 	canvas.tiles = map[TileID]*Tile{}
 }

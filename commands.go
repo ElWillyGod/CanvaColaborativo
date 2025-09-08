@@ -71,7 +71,7 @@ func triangleCommand(args []string, canvasGroup *CanvasGroup) int {
 	drawLine(x2, y2, x3, y3, char, canvasGroup)
 	drawLine(x3, y3, x1, y1, char, canvasGroup)
 
-	canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
+	//canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
 	return 1
 }
 
@@ -91,7 +91,7 @@ func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 
 	//fmt.Println("anda?")
 	drawLine(x1, y1, x2, y2, char, canvasGroup)
-	canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
+	//canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
 	return 1
 }
 
