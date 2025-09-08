@@ -53,7 +53,7 @@ func initCanvas(id string) *Canvas {
 		Matrix: matrix,
 	}
 }
-*/
+
 /*
 Reenvío de mensajes a todos los clientes conectados.
 */
@@ -130,8 +130,27 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup) == 0 {
+		// isCommand devuelve 1 si fue un comando de dibujo que modificó el canvas.
+		commandResult := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
+
+		if commandResult == 0 {
+			// Si es un mensaje de chat (o comando que no modifica), solo hacer broadcast.
 			canvasGroup.broadcast(line+"\n", conn)
+		} else {
+			// Si fue un comando de dibujo (resultado 1):
+			// 1. Renderizar el nuevo estado del canvas.
+			canvasRendered := canvasGroup.renderCanvas()
+
+			// 2. Difundir el canvas actualizado a TODOS los clientes.
+			canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
+
+			// 3. Guardar el estado en la base de datos.
+			err := saveCanvasValkey(canvasGroup.Canvas)
+			if err != nil {
+				fmt.Println("Error al autoguardar el canvas:", err)
+				// Opcional: notificar al usuario del error de guardado.
+				conn.Write([]byte("Error al guardar el canvas en la base de datos.\n"))
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {

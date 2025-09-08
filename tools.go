@@ -21,11 +21,9 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
 	}
 	err := dx + dy
 
-	canvasGroup.Mutex.Lock()
-	defer canvasGroup.Mutex.Unlock()
 	for {
 		if x1 >= 0 && x1 < canvasWidth && y1 >= 0 && y1 < canvasHeight {
-			canvasGroup.Canvas.setChar(x1, x2, char)
+			canvasGroup.Canvas.setChar(x1, y1, char)
 		}
 		if x1 == x2 && y1 == y2 {
 			break

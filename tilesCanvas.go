@@ -29,7 +29,7 @@ type TileID struct {
 }
 
 type Tile struct {
-	data []rune
+	Data []rune
 }
 
 type Canvas struct {
@@ -47,10 +47,10 @@ func newCanvas(id string) *Canvas {
 
 func newTile() *Tile {
 	t := &Tile{
-		data: make([]rune, TileWidth*TileHeight),
+		Data: make([]rune, TileWidth*TileHeight),
 	}
-	for i := range t.data {
-		t.data[i] = ' '
+	for i := range t.Data {
+		t.Data[i] = ' '
 	}
 
 	return t
@@ -61,9 +61,9 @@ func (c *Canvas) setChar(x, y int, char rune) {
 		return
 	}
 
-	tileID := TileID{X: x / TileHeight, Y: y / TileWidth}
+	tileID := TileID{X: x / TileWidth, Y: y / TileHeight}
 	localX := x % TileWidth
-	localY := y & TileHeight
+	localY := y % TileHeight
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -76,8 +76,8 @@ func (c *Canvas) setChar(x, y int, char rune) {
 	}
 
 	index := localY*TileWidth + localX
-	if index < len(tile.data) {
-		tile.data[index] = char
+	if index < len(tile.Data) {
+		tile.Data[index] = char
 	}
 }
 
@@ -100,8 +100,8 @@ func (c *Canvas) getChar(x, y int) rune {
 	}
 
 	index := localY*TileWidth + localX
-	if index < len(tile.data) {
-		return tile.data[index]
+	if index < len(tile.Data) {
+		return tile.Data[index]
 	}
 
 	return ' '
@@ -132,7 +132,7 @@ func (c *Canvas) render(width, height int) string {
 			for j := 0; j < TileWidth; j++ {
 				absY, absX := starY+i, starX+j
 				if absY < height && absX < width {
-					grid[absY][absX] = tile.data[i*TileWidth+j]
+					grid[absY][absX] = tile.Data[i*TileWidth+j]
 				}
 			}
 		}

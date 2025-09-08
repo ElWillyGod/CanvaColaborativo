@@ -14,8 +14,10 @@ package main
 
 */
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -34,28 +36,50 @@ func generateCanvasID() string {
 
 func saveCanvasValkey(canvas *Canvas) error {
 	ctx := context.Background()
-	data, err := json.Marshal(canvas)
-	if err != nil {
-		return err
+
+	canvas.mutex.RLock()
+	defer canvas.mutex.RUnlock()
+
+	// Usamos un buffer para la codificación binaria
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+
+	// Codificamos el mapa de tiles. Gob sí soporta struct como clave.
+	if err := encoder.Encode(canvas.tiles); err != nil {
+		return fmt.Errorf("error al codificar con gob: %w", err)
 	}
-	err = rdb.Set(ctx, "canvas:"+canvas.ID, data, 0).Err()
+
+	// Guardamos los bytes del buffer en Redis.
+	err := rdb.Set(ctx, "canvas:"+canvas.ID, buffer.Bytes(), 0).Err()
 	if err != nil {
-		return err
+		return fmt.Errorf("error al guardar en redis: %w", err)
 	}
+	fmt.Printf("Canvas %s guardado.\n", canvas.ID)
 	return nil
 }
 
 func loadCanvasFromValkey(id string) (*Canvas, error) {
 	ctx := context.Background()
-	data, err := rdb.Get(ctx, "canvas:"+id).Result()
+	// Obtenemos los datos como bytes
+	data, err := rdb.Get(ctx, "canvas:"+id).Bytes()
 	if err != nil {
+		if err == redis.Nil {
+			return nil, fmt.Errorf("canvas con ID '%s' no encontrado", id)
+		}
 		return nil, err
 	}
 
-	var canvas Canvas
-	err = json.Unmarshal([]byte(data), &canvas)
-	if err != nil {
-		return nil, err
+	canvas := newCanvas(id)
+
+	// Creamos un buffer a partir de los bytes y un decodificador gob
+	buffer := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(buffer)
+
+	// Decodificamos los datos en el mapa de tiles.
+	if err := decoder.Decode(&canvas.tiles); err != nil {
+		return nil, fmt.Errorf("error al decodificar con gob: %w", err)
 	}
-	return &canvas, nil
+
+	fmt.Printf("Canvas %s cargado.\n", id)
+	return canvas, nil
 }
