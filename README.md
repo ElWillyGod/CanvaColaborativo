@@ -91,4 +91,3 @@ Implementación:
 Cada cliente tiene un canal de salida (chan []byte).
 Cuando el canvas se modifica, se generan los "deltas" y se envían a los canales de todos los clientes suscritos.
 El goroutine de escritura de cada cliente no envía inmediatamente. Intenta leer del canal en un bucle, agrupando todos los mensajes que pueda durante un breve período de tiempo (o hasta un tamaño máximo) antes de hacer una única llamada a conn.Write().
-3

@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"bytes"
+	"fmt"
+	"time"
+)
 
 /*
 	Algoritmo de Bresenham para dibujar líneas
@@ -8,7 +12,9 @@ import "time"
 	Modificar el algoritmo para meter lo de los characters ANSI
 */
 
-func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
+func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) []Delta {
+	var deltas []Delta
+
 	dx := abs(x2 - x1)
 	dy := -abs(y2 - y1)
 	sx := 1
@@ -24,6 +30,7 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
 	for {
 		if x1 >= 0 && x1 < canvasWidth && y1 >= 0 && y1 < canvasHeight {
 			canvasGroup.Canvas.setChar(x1, y1, char)
+			deltas = append(deltas, Delta{X: x1, Y: y1, Char: char})
 		}
 		if x1 == x2 && y1 == y2 {
 			break
@@ -38,6 +45,8 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
 			y1 += sy
 		}
 	}
+
+	return deltas
 }
 
 func abs(a int) int {
@@ -92,4 +101,13 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 			canvasGroup.broadcast("Limpieza cancelada.\n", nil)
 		}
 	}()
+}
+
+func deltasAnsi(deltas []Delta) string {
+	var buf bytes.Buffer
+
+	for _, del := range deltas {
+		buf.WriteString(fmt.Sprintf("\x1b[%d;%dH%c", del.Y+1, del.X+1, del.Char))
+	}
+	return buf.String()
 }
