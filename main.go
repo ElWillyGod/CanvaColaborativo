@@ -29,12 +29,13 @@ var (
 	clientsMu sync.RWMutex
 )
 
+/*
 type Delta struct {
 	X, Y int
 	Char rune
 }
 
-/*
+
 Estructura del canvas
 
 type Canvas struct {
@@ -136,19 +137,18 @@ func handleConnection(conn net.Conn) {
 		}
 
 		// isCommand devuelve 1 si fue un comando de dibujo que modificó el canvas.
-		deltas, ok := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
+		commandResult := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
 
-		if !ok {
+		if commandResult == 0 {
 			// Si es un mensaje de chat (o comando que no modifica), solo hacer broadcast.
 			canvasGroup.broadcast(line+"\n", conn)
-		}
-		if deltas != nil {
+		} else {
 			// Si fue un comando de dibujo (resultado 1):
 			// 1. Renderizar el nuevo estado del canvas.
-			updateString := deltasAnsi(deltas)
+			canvasRendered := canvasGroup.renderCanvas()
 
 			// 2. Difundir el canvas actualizado a TODOS los clientes.
-			canvasGroup.broadcast(updateString, nil) // nil para enviar a todos
+			canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
 
 			// 3. Guardar el estado en la base de datos.
 			err := saveCanvasValkey(canvasGroup.Canvas)

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"time"
 )
 
@@ -12,8 +10,8 @@ import (
 	Modificar el algoritmo para meter lo de los characters ANSI
 */
 
-func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) []Delta {
-	var deltas []Delta
+func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) {
+	//var deltas []Delta
 
 	dx := abs(x2 - x1)
 	dy := -abs(y2 - y1)
@@ -30,7 +28,7 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) []Delta {
 	for {
 		if x1 >= 0 && x1 < canvasWidth && y1 >= 0 && y1 < canvasHeight {
 			canvasGroup.Canvas.setChar(x1, y1, char)
-			deltas = append(deltas, Delta{X: x1, Y: y1, Char: char})
+			//deltas = append(deltas, Delta{X: x1, Y: y1, Char: char})
 		}
 		if x1 == x2 && y1 == y2 {
 			break
@@ -46,7 +44,7 @@ func drawLine(x1, y1, x2, y2 int, char rune, canvasGroup *CanvasGroup) []Delta {
 		}
 	}
 
-	return deltas
+	//return deltas
 }
 
 func abs(a int) int {
@@ -103,6 +101,7 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 	}()
 }
 
+/*
 func deltasAnsi(deltas []Delta) string {
 	var buf bytes.Buffer
 
@@ -111,3 +110,4 @@ func deltasAnsi(deltas []Delta) string {
 	}
 	return buf.String()
 }
+*/

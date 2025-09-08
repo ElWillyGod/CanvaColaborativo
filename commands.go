@@ -21,7 +21,7 @@ type Command struct {
 	Execute    func(args []string) int
 }
 
-var commands = map[string]func(args []string, canvasGroup *CanvasGroup) ([]Delta, bool){
+var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/triangle": triangleCommand,
 	"/line":     lineCommand,
 	//////////////////////////////////////////////////
@@ -37,13 +37,13 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) ([]Delta
 
 var clearDuration = 10 * time.Second
 
-func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) int {
 	// Aquí se puede implementar la lógica para verificar si el comando es válido
 	// y devolver y ejecutarlo
 
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
-		return nil, false
+		return 0
 	}
 	cmd := parts[0]
 	if fn, ok := commands[cmd]; ok {
@@ -51,13 +51,13 @@ func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) ([]
 		return fn(args, canvasGroup) // Pasar el grupo como parámetro
 	}
 	//fmt.Println("Comando no reconocido")
-	return nil, false
+	return 0
 }
 
-func triangleCommand(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func triangleCommand(args []string, canvasGroup *CanvasGroup) int {
 	// Comando de Triángulo
 	if len(args) < 7 {
-		return nil, false
+		return 0
 	}
 	x1, _ := strconv.Atoi(args[0])
 	y1, _ := strconv.Atoi(args[1])
@@ -67,21 +67,21 @@ func triangleCommand(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
 	y3, _ := strconv.Atoi(args[5])
 	char := []rune(args[6])[0]
 
-	delta := drawLine(x1, y1, x2, y2, char, canvasGroup)
-	delta = append(delta, drawLine(x2, y2, x3, y3, char, canvasGroup)...)
-	delta = append(delta, drawLine(x3, y3, x1, y1, char, canvasGroup)...)
+	drawLine(x1, y1, x2, y2, char, canvasGroup)
+	drawLine(x2, y2, x3, y3, char, canvasGroup)
+	drawLine(x3, y3, x1, y1, char, canvasGroup)
 
 	//canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
-	return delta, true
+	return 1
 }
 
-func lineCommand(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 	// Comando de Línea
 	fmt.Println("llego a line")
 	if len(args) < 5 {
 
 		fmt.Println("Error con los parametros de line")
-		return nil, false
+		return 0
 	}
 	x1, _ := strconv.Atoi(args[0])
 	y1, _ := strconv.Atoi(args[1])
@@ -90,38 +90,38 @@ func lineCommand(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
 	char := []rune(args[4])[0]
 
 	//fmt.Println("anda?")
+	drawLine(x1, y1, x2, y2, char, canvasGroup)
 	//canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
-	return drawLine(x1, y1, x2, y2, char, canvasGroup), true
-
+	return 1
 }
 
-func setEnvironment(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func setEnvironment(args []string, canvasGroup *CanvasGroup) int {
 	// Aquí se puede implementar la lógica para establecer el entorno
-	return nil, false
+	return 0
 }
 
-func saveCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if canvasGroup.Canvas == nil {
-		return nil, false
+		return 0
 	}
 	err := saveCanvasValkey(canvasGroup.Canvas)
 	if err != nil {
-		return nil, false
+		return 0
 	}
-	return nil, true
+	return 1
 }
 
-func loadCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func loadCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if len(args) < 1 {
-		return nil, false
+		return 0
 	}
 	id := args[0]
 	canvas, err := loadCanvasFromValkey(id)
 	if err != nil {
-		return nil, false
+		return 0
 	}
 	canvasGroup.Canvas = canvas
-	return nil, true
+	return 1
 }
 
 /*
@@ -130,7 +130,7 @@ func loadCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
 	no quiero modificar el handleConnection, entonces voy a meter un timeout
 */
 
-func clearCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
+func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 	canvasGroup.Mutex.Lock()
 	defer canvasGroup.Mutex.Unlock()
 
@@ -145,22 +145,22 @@ func clearCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
 		}()
 
 		go waitForClearConfirmations(canvasGroup)
-		return nil, true
+		return 1
 	}
 
 	// Si hay confirmación pendiente y el usuario responde "yes"
 	if len(args) > 0 && args[0] == "yes" && len(args) > 1 {
 		userID := args[1]
 		canvasGroup.ClearConfirmations[userID] = true
-		return nil, true
+		return 1
 	}
 
-	return nil, false
+	return 0
 }
 
 /*
 La func de help
 */
-func helpCanvas(args []string, canvasGroup *CanvasGroup) ([]Delta, bool) {
-	return nil, false
+func helpCanvas(args []string, canvasGrup *CanvasGroup) int {
+	return 0
 }
