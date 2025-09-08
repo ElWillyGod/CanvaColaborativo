@@ -29,12 +29,12 @@ var (
 	clientsMu sync.RWMutex
 )
 
-/*
 type Delta struct {
 	X, Y int
 	Char rune
 }
 
+/*
 
 Estructura del canvas
 
@@ -82,7 +82,31 @@ func handleConnection(conn net.Conn) {
 
 	defer func() {
 		if canvasGroup != nil {
+			// Eliminar al cliente del grupo actual.
 			canvasGroup.removeClient(conn)
+			fmt.Printf("Cliente %s eliminado del grupo %s.\n", conn.RemoteAddr(), canvasGroup.Canvas.ID)
+
+			// --- INICIO DE LA MEJORA ---
+			// Comprobar si el grupo ha quedado vacío.
+			canvasGroup.Mutex.RLock()
+			isGroupEmpty := len(canvasGroup.Clients) == 0
+			canvasGroup.Mutex.RUnlock()
+
+			if isGroupEmpty {
+				fmt.Printf("El grupo %s está vacío. Guardando en Valkey y limpiando de memoria.\n", canvasGroup.Canvas.ID)
+
+				// 1. Guardar el estado final del canvas en Valkey.
+				err := saveCanvasValkey(canvasGroup.Canvas)
+				if err != nil {
+					fmt.Printf("Error al guardar el canvas %s al cerrar el grupo: %v\n", canvasGroup.Canvas.ID, err)
+				}
+
+				// 2. Eliminar el grupo del mapa global para liberar memoria.
+				canvasesMu.Lock()
+				delete(canvasGroups, canvasGroup.Canvas.ID)
+				canvasesMu.Unlock()
+			}
+			// --- FIN DE LA MEJORA ---
 		}
 		conn.Close()
 		fmt.Println("Conexión cerrada desde", conn.RemoteAddr())
@@ -153,12 +177,13 @@ SESSON_LOOP:
 
 				canvasRendered := canvasGroup.renderCanvas()
 				canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
-
-				err := saveCanvasValkey(canvasGroup.Canvas)
-				if err != nil {
-					fmt.Println("Error al autoguardar el canvas:", err)
-					conn.Write([]byte("Error al guardar el canvas en la base de datos.\n"))
-				}
+				/*
+					err := saveCanvasValkey(canvasGroup.Canvas)
+					if err != nil {
+						fmt.Println("Error al autoguardar el canvas:", err)
+						conn.Write([]byte("Error al guardar el canvas en la base de datos.\n"))
+					}
+				*/
 			}
 			if commandResult == 2 {
 				continue SESSON_LOOP

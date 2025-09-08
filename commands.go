@@ -25,11 +25,12 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/triangle": triangleCommand,
 	"/line":     lineCommand,
 	//////////////////////////////////////////////////
-	"/set":   setEnvironment,
-	"/save":  saveCanvas,
-	"/load":  loadCanvas,
-	"/clear": clearCanvas,
-	"/help":  helpCanvas,
+	"/set":       setEnvironment,
+	"/save":      saveCanvas,
+	"/load":      loadCanvas,
+	"/clear":     clearCanvas,
+	"/help":      helpCanvas,
+	"/paraatras": paraatras,
 }
 
 ///////////////////////////////////////////////////////
@@ -90,8 +91,17 @@ func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 	char := []rune(args[4])[0]
 
 	//fmt.Println("anda?")
-	drawLine(x1, y1, x2, y2, char, canvasGroup)
-	//canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
+	undoDeltas := drawLine(x1, y1, x2, y2, char, canvasGroup)
+
+	// 2. Si hubo cambios, guardarlos en la pila de deshacer.
+	if len(undoDeltas) > 0 {
+		canvasGroup.Mutex.Lock()
+		canvasGroup.Oper = append(canvasGroup.Oper, undoDeltas)
+		if len(canvasGroup.Oper) > MaxOper {
+			canvasGroup.Oper = canvasGroup.Oper[1:]
+		}
+		canvasGroup.Mutex.Unlock()
+	} //canvasGroup.broadcast(canvasGroup.renderCanvas(), nil)
 	return 1
 }
 
@@ -157,4 +167,27 @@ La func de help
 */
 func helpCanvas(args []string, canvasGrup *CanvasGroup) int {
 	return 0
+}
+
+func paraatras(args []string, canvasGroup *CanvasGroup) int {
+	canvasGroup.Mutex.Lock()
+
+	if len(canvasGroup.Oper) == 0 {
+		canvasGroup.Mutex.Unlock()
+		return 0 // No hay nada que deshacer, no se redibuja.
+	}
+
+	// Sacar la última acción de la pila.
+	lastActionDeltas := canvasGroup.Oper[len(canvasGroup.Oper)-1]
+	canvasGroup.Oper = canvasGroup.Oper[:len(canvasGroup.Oper)-1]
+
+	canvasGroup.Mutex.Unlock() // Desbloquear antes de dibujar
+
+	// Aplicar los deltas inversos.
+	for _, delta := range lastActionDeltas {
+		canvasGroup.Canvas.setChar(delta.X, delta.Y, delta.Char)
+	}
+
+	// Devolver '1' para que handleConnection renderice y difunda el estado actualizado.
+	return 1
 }

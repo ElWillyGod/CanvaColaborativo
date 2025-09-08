@@ -11,10 +11,13 @@ Canvas group.
 esctructuras y logica
 */
 
+const MaxOper = 2
+
 type CanvasGroup struct {
 	Canvas             *Canvas
 	Clients            map[net.Conn]bool
 	Mutex              sync.RWMutex
+	Oper               [][]*Delta
 	PendingClear       bool
 	ClearConfirmations map[string]bool
 	ClearStartTime     time.Time
@@ -36,6 +39,7 @@ func gestCanvas(canvasID string) *CanvasGroup {
 	group := &CanvasGroup{
 		Canvas:             newCanvas(canvasID),
 		Clients:            make(map[net.Conn]bool),
+		Oper:               make([][]*Delta, 0, MaxOper),
 		PendingClear:       false,
 		ClearConfirmations: make(map[string]bool),
 	}
