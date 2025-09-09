@@ -1,93 +1,95 @@
-# Letra del proyecto
+# 🎨 Canva Colaborativo en Go
 
-Desarrollar un **servidor TCP** (telnet-friendly) en **Go** que expone un **canvas ASCII multiusuario** en tiempo real. Las personas se conectan con telnet host puerto, ejecutan **comandos de dibujo** (puntos, líneas, rectángulos, texto), ven las acciones de otros en vivo. El sistema debe manejar **concurrencia**, **resolución de conflictos** de edición, **rate-limiting** (anti-flood) y **persistencia** de snapshots para restaurar el estado. 
+Este proyecto es un servidor de canvas colaborativo en tiempo real implementado en Go. Permite que múltiples usuarios se conecten a través de Telnet y dibujen simultáneamente en un lienzo de texto compartido. El estado de cada lienzo se guarda de forma persistente en una base de datos **Valkey** (o Redis).
 
+## ✨ Características Principales
 
-El foco no debería ser en la parte visual, sino enfocarse en las funcionalidades core: rate-limiting, persistencia, concurrencia, etc.
+-   **Colaboración en Tiempo Real**: Múltiples usuarios pueden dibujar en el mismo lienzo y ver las actualizaciones de los demás al instante.
+-   **Persistencia Eficiente**: Los lienzos se guardan en Valkey utilizando una estrategia optimizada. En lugar de guardar todo el lienzo con cada cambio, solo se actualizan las "baldosas" (tiles) modificadas, reduciendo drásticamente la carga en la base de datos.
+-   **Lienzos Múltiples**: Los usuarios pueden crear nuevos lienzos o unirse a lienzos existentes utilizando su ID único (UUID).
+-   **Interfaz por Comandos**: La interacción se realiza a través de comandos de texto simples e intuitivos.
+-   **Seguridad y Estabilidad**:
+    -   **Rate Limiting**: Implementa un limitador de tasa por conexión para prevenir el abuso y los ataques de inundación (flooding).
+    -   **Manejo Concurrente Seguro**: Utiliza mutex y canales de Go para gestionar de forma segura el estado compartido entre múltiples goroutines de clientes.
+-   **Acciones Grupales**: Funciones como limpiar el lienzo requieren la confirmación de todos los usuarios conectados, promoviendo un entorno colaborativo.
 
+## 🚀 Cómo Empezar
 
-# Desarrollo de la letra
+### Prerrequisitos
 
-Todo en Go **tengo que orientar esto a miles de usuarios**
+-   [Go](https://golang.org/dl/) (versión 1.18 o superior)
+-   [Valkey](https://valkey.io/) o [Redis](https://redis.io/)
+-   Un cliente Telnet.
 
-Canvas ASCII multiusuario en tiempo real
+### Instalación
 
-1. **Conectividad y protocolo:** servidor TCP line-oriented compatible con clientes telnet; ayuda mínima integrada. 
-A que se refiere con ayuda mínima integrada?
+1.  **Clona el repositorio:**
+    ```sh
+    git clone <URL_DEL_REPOSITORIO>
+    cd CanvaColaborativo
+    ```
 
-2. **Funciones esenciales:** operaciones básicas de dibujo (puntos/figuras simples), mensajes de chat y limpieza del canvas con confirmación. Fusión entre Canvas?
+2.  **Instala las dependencias:**
+    ```sh
+    go mod tidy
+    ```
 
-3. **Concurrencia y coherencia:** difusión en tiempo real de cambios; política simple de resolución de conflictos y **rate limiting** por usuario. (como aplico memoria dinamica?)
+### Configuración
 
-4. **Persistencia:** snapshots para restaurar estado (podría ser por modificación como un Ctrl+Z)
+El servidor se puede configurar mediante variables de entorno:
 
-5. **Configuración:** tamaño de canvas, puerto, y límites ajustables por variables de entorno. 
+-   `PORT`: El puerto en el que se ejecutará el servidor (por defecto: `8080`).
+-   `VALKEY_ADDR`: La dirección del servidor Valkey/Redis (por defecto: `localhost:6379`).
+-   `CANVAS_WIDTH`: Ancho del lienzo en caracteres (por defecto: `80`).
+-   `CANVAS_HEIGHT`: Alto del lienzo en caracteres (por defecto: `40`).
 
-Variables de entorno de Telnet y del servidor.
+### Ejecución
 
-Donde puedo aplicar estructuras? algo con skips list y memoria dinamica. Para la gestion de clientes?
-slices para buffers de red y rate limiting?
+1.  Asegúrate de que tu servidor Valkey/Redis esté en funcionamiento.
+2.  Inicia el servidor de canvas:
+    ```sh
+    go run .
+    ```
 
-el historial de comandos puede ser guardado mediante una lista enlazada.
+## ✍️ Cómo Usar
 
-[x] Puedo usar listas circulares para gestionar lo de rate limiting? 
+1.  **Conéctate al servidor** usando un cliente Telnet:
+    ```sh
+    telnet localhost 8080
+    ```
 
-manejar tiempos de espera, nose pueden quedar esperando si hay muchos clientes. noon
+2.  **Únete a un lienzo**:
+    -   Para crear un lienzo nuevo, simplemente conéctate. Se te asignará un nuevo ID de lienzo.
+    -   Para unirte a un lienzo existente, usa el comando `/load <ID_DEL_LIENZO>`.
 
-Grupos de canvas en paralelo:
-las personas se pueden unir y crear su propio canvas con un id unico
-/////////////////////////////////////////////////
-Motor de canvas **tileado + esparso** (alto rendimiento)
+### Comandos Disponibles
 
-* **Idea:** dividir el canvas en **tiles** (p. ej. 64×32). Solo asignás memoria para tiles “tocados”.
-* **Estructuras:**
+-   `/p <x> <y> <char>`: Dibuja un carácter (`char`) en la coordenada (`x`, `y`).
+    -   Ejemplo: `/p 10 5 X`
+-   `/load <canvas_id>`: Carga un lienzo existente o cambia a él.
+-   `/id`: Muestra el ID del lienzo actual.
+-   `/clear`: Inicia una votación para limpiar el lienzo. Todos los usuarios conectados deben confirmar.
+-   `/clear yes`: Emite tu voto para confirmar la limpieza del lienzo.
+-   `/help`: Muestra una lista de los comandos disponibles.
 
-  * **HashMap → Tile** (map\[TileID]\*Tile) con **pooling** (`sync.Pool`) para reciclar tiles y buffers.
-  * Dentro de cada tile, **matriz de run-length (RLE) por filas** para comprimir secuencias de caracteres iguales (ideal para ASCII).
-  * **Copy-on-write** para snapshots (ver §4).
-* **Beneficio:** baja uso de RAM, updates localizados, snapshots y “undos” baratos.
+## 🛠️ Detalles Técnicos
 
+### Concurrencia
 
+El servidor está diseñado para ser altamente concurrente. Cada conexión de cliente se maneja en su propia goroutine. El estado compartido (como la lista de clientes en un `CanvasGroup`) está protegido por un `sync.RWMutex` para permitir múltiples lecturas concurrentes (broadcasts) pero escrituras exclusivas (añadir/eliminar clientes).
 
-Compresión y optimización de tráfico
+### Persistencia Optimizada
 
-Implementar compresión delta: en lugar de mandar todo el canvas, enviar solo las diferencias (patches ASCII).
+Para minimizar la latencia y la carga en la base de datos, el lienzo no se guarda como un único blob. En su lugar, se divide en "baldosas" de 16x8 caracteres. Cuando un usuario modifica un carácter, solo la baldosa afectada se serializa y se guarda en un **Hash** de Valkey.
 
-Podés mostrar cómo reducís ancho de banda para miles de usuarios concurrentes.
+-   **Clave en Valkey**: `canvas:<canvas_id>`
+-   **Tipo**: `Hash`
+-   **Campo del Hash**: Coordenada de la baldosa (ej: `"0,1"`)
+-   **Valor del Hash**: Datos binarios de la baldosa serializados con `gob`.
 
-esto se puede hacer con telnet?
+Este enfoque permite actualizaciones atómicas y muy rápidas, siendo ideal para un entorno colaborativo.
 
-Opciones para “verlo” bien en Telnet
+### Rate Limiting
 
-Modo textual (más simple):
+Para proteger el servidor, se implementa un algoritmo de **Ventana Deslizante** utilizando un búfer circular por conexión. Este sistema limita el número de comandos que un usuario puede enviar en un período de tiempo determinado, previniendo el spam y asegurando un uso justo de los recursos. La gestión de memoria está controlada, ya que el limitador de un usuario se elimina del mapa de seguimiento en cuanto este se desconecta.
 
-Los usuarios ven mensajes tipo UPDATE 10 5 X.
-
-No se actualiza el canvas en pantalla automáticamente, el usuario interpreta.
-
-Esto es 100% compatible con Telnet.
-
-Modo gráfico ASCII (más desafiante):
-
-Podés usar códigos ANSI de terminal (telnet lo soporta) para mover el cursor a (10,5) y dibujar la X.
-
-Entonces el usuario ve cómo el canvas cambia en vivo sin redibujar todo.
-
-Esto sí da el efecto “canvas en tiempo real con deltas”.
-///////////////////////////////////////////////////
-
-Indexación Espacial con Quadtrees para Operaciones de Área
-En lugar de (o además de) tu map[TileID]*Tile, puedes implementar un Quadtree para indexar los tiles que contienen datos.
-
-Qué es: Un Quadtree es una estructura de datos en árbol usada para particionar un espacio 2D, subdividiendo recursivamente una región en cuatro cuadrantes.
-
-////////////////////////////////////////////////////
-Agrupación de Paquetes (Packet Batching) y Ticks del Servidor
-Enviar cada pequeña actualización en su propio paquete TCP es extremadamente ineficiente debido a la sobrecarga de las cabeceras TCP/IP (40-60 bytes por paquete para enviar a veces un solo byte de datos).
-
-Qué es: En lugar de que el goroutine de un cliente envíe datos inmediatamente después de una modificación, los coloca en un buffer de salida compartido o en un canal. Un único goroutine "broadcaster" se despierta a intervalos fijos (por ejemplo, cada 20-50 milisegundos, un "tick"), recoge todas las actualizaciones pendientes para cada cliente y las envía en un solo paquete grande.
-Por qué sorprende: Es una implementación a nivel de aplicación del Algoritmo de Nagle, una optimización de red fundamental. Muestra una comprensión profunda de cómo funciona TCP y cómo evitar la congestión y el overhead.
-Implementación:
-Cada cliente tiene un canal de salida (chan []byte).
-Cuando el canvas se modifica, se generan los "deltas" y se envían a los canales de todos los clientes suscritos.
-El goroutine de escritura de cada cliente no envía inmediatamente. Intenta leer del canal en un bucle, agrupando todos los mensajes que pueda durante un breve período de tiempo (o hasta un tamaño máximo) antes de hacer una única llamada a conn.Write().
