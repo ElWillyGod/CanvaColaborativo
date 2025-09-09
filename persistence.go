@@ -34,48 +34,54 @@ func generateCanvasID() string {
 	return uuid.New().String()
 }
 
-func saveCanvasValkey(canvas *Canvas) error {
+func saveTileToValkey(canvasID string, tileID TileID, tile *Tile) error {
 	ctx := context.Background()
 
-	canvas.mutexCanvas.RLock()
-	defer canvas.mutexCanvas.RUnlock()
+	tileKey := fmt.Sprintf("%d,%d", tileID.X, tileID.Y)
 
 	var buffer bytes.Buffer
-	encoder := gob.NewEncoder(&buffer)
-
-	if err := encoder.Encode(canvas.tiles); err != nil {
-		return fmt.Errorf("error al codificar con gob: %w", err)
+	if err := gob.NewEncoder(&buffer).Encode(tile.Data); err != nil {
+		return fmt.Errorf("error al codificar la baldosa con gob: %w", err)
 	}
 
-	err := rdb.Set(ctx, "canvas:"+canvas.ID, buffer.Bytes(), 0).Err()
+	err := rdb.HSet(ctx, "canvas:"+canvasID, tileKey, buffer.Bytes()).Err()
 	if err != nil {
-		return fmt.Errorf("error al guardar en redis: %w", err)
+		return fmt.Errorf("error al guardar la baldosa en redis (HSET): %w", err)
 	}
-	fmt.Printf("Canvas %s guardado.\n", canvas.ID)
+
 	return nil
 }
 
 func loadCanvasFromValkey(id string) (*Canvas, error) {
 	ctx := context.Background()
-	data, err := rdb.Get(ctx, "canvas:"+id).Bytes()
-
+	//HGETALL
+	tilesData, err := rdb.HGetAll(ctx, "canvas:"+id).Result()
 	if err != nil {
-		if err == redis.Nil {
-			return nil, fmt.Errorf("canvas con ID '%s' no encontrado", id)
-		}
 		return nil, err
+	}
+	if len(tilesData) == 0 {
+		return newCanvas(id), nil
 	}
 
 	canvas := newCanvas(id)
 
-	buffer := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(buffer)
+	for tileKey, tileData := range tilesData {
+		var tileID TileID
+		if _, err := fmt.Sscanf(tileKey, "%d,%d", &tileID.X, &tileID.Y); err != nil {
+			fmt.Printf("error parsear tile key '%s', saltando: %v\n", tileKey, err)
+			continue
+		}
 
-	// Decodificamos los datos en el mapa de tiles.
-	if err := decoder.Decode(&canvas.tiles); err != nil {
-		return nil, fmt.Errorf("error al decodificar con gob: %w", err)
+		var data []rune
+		buffer := bytes.NewBufferString(tileData)
+		if err := gob.NewDecoder(buffer).Decode(&data); err != nil {
+			fmt.Printf("error decodificar tile data para key '%s', saltando: %v\n", tileKey, err)
+			continue
+		}
+
+		canvas.tiles[tileID] = &Tile{Data: data}
 	}
 
-	fmt.Printf("Canvas %s cargado.\n", id)
+	fmt.Printf("%s cargado con %d baldosas.\n", id, len(canvas.tiles))
 	return canvas, nil
 }

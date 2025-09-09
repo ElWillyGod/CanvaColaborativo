@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 )
 
@@ -89,6 +90,12 @@ func (c *Canvas) setChar(x, y int, char rune) {
 		tile.Data[index] = char
 	}
 	tile.mutex.Unlock()
+
+	go func() {
+		if err := saveTileToValkey(c.ID, tileID, tile); err != nil {
+			fmt.Printf("error en setchar %v: %v\n", tileID, err)
+		}
+	}()
 }
 
 func (c *Canvas) getChar(x, y int) rune {
@@ -144,8 +151,11 @@ func (c *Canvas) render(width, height int) string {
 
 		for i := 0; i < TileHeight; i++ {
 			for j := 0; j < TileWidth; j++ {
+
 				absY, absX := starY+i, starX+j
+
 				if absY < height && absX < width {
+
 					grid[absY][absX] = tile.Data[i*TileWidth+j]
 				}
 			}

@@ -26,7 +26,7 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/line":     lineCommand,
 	//////////////////////////////////////////////////
 	//"/set":       setEnvironment,
-	"/save":      saveCanvas,
+	//"/save":      saveCanvas,
 	"/load":      loadCanvas,
 	"/clear":     clearCanvas,
 	"/help":      helpCanvas,
@@ -105,6 +105,7 @@ func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 	return 1
 }
 
+/*
 func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if canvasGroup.Canvas == nil {
 		return 0
@@ -115,6 +116,7 @@ func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
 	}
 	return 1
 }
+*/
 
 func loadCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if len(args) < 1 {

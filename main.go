@@ -100,12 +100,14 @@ func handleConnection(conn net.Conn) {
 			canvasGroup.Mutex.RUnlock()
 
 			if isGroupEmpty {
-				fmt.Printf("grupo %s vacio. guardando Valkey \n", canvasGroup.Canvas.ID)
+				/*
+					fmt.Printf("grupo %s vacio. guardando Valkey \n", canvasGroup.Canvas.ID)
 
-				err := saveCanvasValkey(canvasGroup.Canvas)
-				if err != nil {
-					fmt.Printf("Error al guardar el canvas %s al cerrar el grupo: %v\n", canvasGroup.Canvas.ID, err)
-				}
+					err := saveCanvasValkey(canvasGroup.Canvas)
+					if err != nil {
+						fmt.Printf("Error al guardar el canvas %s al cerrar el grupo: %v\n", canvasGroup.Canvas.ID, err)
+					}
+				*/
 
 				canvasesMu.Lock()
 				delete(canvasGroups, canvasGroup.Canvas.ID)
@@ -183,7 +185,7 @@ SESSON_LOOP:
 				canvasGroup.broadcast([]byte(canvasGroup.renderCanvas()), nil)
 			}
 			if commandResult == 2 {
-				saveCanvasValkey(canvasGroup.Canvas)
+				//saveCanvasValkey(canvasGroup.Canvas)
 				continue SESSON_LOOP
 			}
 		}
