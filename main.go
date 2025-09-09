@@ -91,6 +91,9 @@ func handleConnection(conn net.Conn) {
 	}()
 
 	defer func() {
+
+		removeLimiter(conn)
+
 		if canvasGroup != nil {
 			canvasGroup.removeClient(client)
 			fmt.Printf("%s eliminado del grupo %s.\n", conn.RemoteAddr(), canvasGroup.Canvas.ID)

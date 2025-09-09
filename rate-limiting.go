@@ -12,7 +12,7 @@ import (
 
 const (
 	RateLimitCount  = 3
-	RateLimitWindow = 10
+	RateLimitWindow = 10 * time.Second
 )
 
 // lista circular
@@ -21,32 +21,44 @@ type CircularBuffer struct {
 	time  [RateLimitCount]time.Time
 	index int
 	full  bool
+	mutex sync.Mutex
 }
 
 var userRates = make(map[net.Conn]*CircularBuffer)
 var mu sync.RWMutex
 
 func allowCommand(conn net.Conn) bool {
-	now := time.Now()
 	mu.Lock()
-	defer mu.Unlock()
-
-	cb, ok := userRates[conn]
-
-	if !ok {
-		cb = &CircularBuffer{}
-		userRates[conn] = cb
+	limiter, exists := userRates[conn]
+	if !exists {
+		limiter = &CircularBuffer{}
+		userRates[conn] = limiter
 	}
-	if cb.full {
-		oldest := cb.time[cb.index]
-		if now.Sub(oldest).Seconds() < RateLimitWindow {
+	mu.Unlock()
+
+	limiter.mutex.Lock()
+	defer limiter.mutex.Unlock()
+
+	now := time.Now()
+
+	if limiter.full {
+		oldestRequest := limiter.time[limiter.index]
+		if now.Sub(oldestRequest) < RateLimitWindow {
 			return false
 		}
 	}
-	cb.time[cb.index] = now
-	cb.index = (cb.index + 1) % RateLimitCount
-	if cb.index == 0 {
-		cb.full = true
+
+	limiter.time[limiter.index] = now
+	limiter.index = (limiter.index + 1) % RateLimitCount
+	if !limiter.full && limiter.index == 0 {
+		limiter.full = true
 	}
+
 	return true
+}
+
+func removeLimiter(conn net.Conn) {
+	mu.Lock()
+	defer mu.Unlock()
+	delete(userRates, conn)
 }
