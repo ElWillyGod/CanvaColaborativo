@@ -102,11 +102,11 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 	// Solución: usar una goroutine
 	go func() {
 		if shouldClear {
-			canvasGroup.broadcast(canvasRendered, nil)
-			canvasGroup.broadcast("Canvas limpiado.\n", nil)
+			canvasGroup.broadcast([]byte(canvasRendered), nil)
+			canvasGroup.broadcast([]byte("Canvas limpiado.\n"), nil)
 			//saveCanvasValkey(canvasGroup.Canvas)
 		} else {
-			canvasGroup.broadcast("Limpieza cancelada.\n", nil)
+			canvasGroup.broadcast([]byte("Limpieza cancelada.\n"), nil)
 		}
 	}()
 }

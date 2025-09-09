@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	RateLimitCount  = 2
+	RateLimitCount  = 3
 	RateLimitWindow = 10
 )
 

@@ -79,11 +79,21 @@ Para aceptar conexiones entrantes y manejar la comunicación con los clientes.
 */
 func handleConnection(conn net.Conn) {
 	var canvasGroup *CanvasGroup
+	client := &Client{
+		conn: conn,
+		send: make(chan []byte, 256),
+	}
+
+	go func() {
+		for message := range client.send {
+			client.conn.Write(message)
+		}
+	}()
 
 	defer func() {
 		if canvasGroup != nil {
 			// Eliminar al cliente del grupo actual.
-			canvasGroup.removeClient(conn)
+			canvasGroup.removeClient(client)
 			fmt.Printf("Cliente %s eliminado del grupo %s.\n", conn.RemoteAddr(), canvasGroup.Canvas.ID)
 
 			// --- INICIO DE LA MEJORA ---
@@ -118,7 +128,7 @@ SESSON_LOOP:
 	for {
 
 		if canvasGroup != nil {
-			canvasGroup.removeClient(conn)
+			canvasGroup.removeClient(client)
 		}
 
 		conn.Write([]byte("ID del canvas o escribe 'nuevo': "))
@@ -155,7 +165,7 @@ SESSON_LOOP:
 		}
 		fmt.Println("ID: " + canvasGroup.Canvas.ID + "\n")
 
-		canvasGroup.addClient(conn)
+		canvasGroup.addClient(client)
 		conn.Write([]byte(canvasGroup.renderCanvas()))
 
 		for scanner.Scan() {
@@ -171,12 +181,12 @@ SESSON_LOOP:
 			commandResult := isCommand(line, []string{conn.RemoteAddr().String()}, canvasGroup)
 
 			if commandResult == 0 {
-				canvasGroup.broadcast(line+"\n", conn)
+				canvasGroup.broadcast([]byte(line+"\n"), client)
 			}
 			if commandResult == 1 {
 
-				canvasRendered := canvasGroup.renderCanvas()
-				canvasGroup.broadcast(canvasRendered, nil) // nil para enviar a todos
+				//canvasRendered := canvasGroup.renderCanvas()
+				canvasGroup.broadcast([]byte(canvasGroup.renderCanvas()), nil) // nil para enviar a todos
 				/*
 					err := saveCanvasValkey(canvasGroup.Canvas)
 					if err != nil {
@@ -186,6 +196,7 @@ SESSON_LOOP:
 				*/
 			}
 			if commandResult == 2 {
+				saveCanvasValkey(canvasGroup.Canvas)
 				continue SESSON_LOOP
 			}
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -13,9 +14,14 @@ esctructuras y logica
 
 const MaxOper = 2
 
+type Client struct {
+	conn net.Conn
+	send chan []byte
+}
+
 type CanvasGroup struct {
 	Canvas             *Canvas
-	Clients            map[net.Conn]bool
+	Clients            map[*Client]bool
 	Mutex              sync.RWMutex
 	Oper               [][]*Delta
 	PendingClear       bool
@@ -38,7 +44,7 @@ func gestCanvas(canvasID string) *CanvasGroup {
 
 	group := &CanvasGroup{
 		Canvas:             newCanvas(canvasID),
-		Clients:            make(map[net.Conn]bool),
+		Clients:            make(map[*Client]bool),
 		Oper:               make([][]*Delta, 0, MaxOper),
 		PendingClear:       false,
 		ClearConfirmations: make(map[string]bool),
@@ -47,24 +53,38 @@ func gestCanvas(canvasID string) *CanvasGroup {
 	return group
 }
 
-func (cg *CanvasGroup) addClient(conn net.Conn) {
+func (cg *CanvasGroup) addClient(client *Client) {
 	cg.Mutex.Lock()
 	defer cg.Mutex.Unlock()
-	cg.Clients[conn] = true
+	cg.Clients[client] = true
 }
 
-func (cg *CanvasGroup) removeClient(conn net.Conn) {
+func (cg *CanvasGroup) removeClient(client *Client) {
 	cg.Mutex.Lock()
 	defer cg.Mutex.Unlock()
-	delete(cg.Clients, conn)
+	if _, ok := cg.Clients[client]; ok {
+		delete(cg.Clients, client)
+
+		close(client.send)
+	}
 }
 
-func (cg *CanvasGroup) broadcast(message string, sender net.Conn) {
+func (cg *CanvasGroup) broadcast(message []byte, sender *Client) {
 	cg.Mutex.RLock()
 	defer cg.Mutex.RUnlock()
+
 	for client := range cg.Clients {
 		if client != sender {
-			client.Write([]byte(message))
+			// Envío no bloqueante.
+			select {
+			case client.send <- message:
+				// El mensaje fue enviado exitosamente al buzón del cliente.
+			default:
+				// El buzón del cliente está lleno. Esto significa que el cliente es
+				// demasiado lento. Descartamos el mensaje para no bloquear a todos los demás.
+				// En un sistema más avanzado, podríamos desconectar a este cliente.
+				fmt.Printf("Cliente %s demasiado lento, mensaje descartado.\n", client.conn.RemoteAddr())
+			}
 		}
 	}
 }

@@ -25,7 +25,7 @@ var commands = map[string]func(args []string, canvasGroup *CanvasGroup) int{
 	"/triangle": triangleCommand,
 	"/line":     lineCommand,
 	//////////////////////////////////////////////////
-	"/set":       setEnvironment,
+	//"/set":       setEnvironment,
 	"/save":      saveCanvas,
 	"/load":      loadCanvas,
 	"/clear":     clearCanvas,
@@ -49,7 +49,7 @@ func isCommand(command string, extraArgs []string, canvasGroup *CanvasGroup) int
 	cmd := parts[0]
 	if fn, ok := commands[cmd]; ok {
 		args := append(parts[1:], extraArgs...)
-		return fn(args, canvasGroup) // Pasar el grupo como parámetro
+		return fn(args, canvasGroup)
 	}
 	//fmt.Println("Comando no reconocido")
 	return 0
@@ -105,11 +105,6 @@ func lineCommand(args []string, canvasGroup *CanvasGroup) int {
 	return 1
 }
 
-func setEnvironment(args []string, canvasGroup *CanvasGroup) int {
-	// Aquí se puede implementar la lógica para establecer el entorno
-	return 0
-}
-
 func saveCanvas(args []string, canvasGroup *CanvasGroup) int {
 	if canvasGroup.Canvas == nil {
 		return 0
@@ -145,7 +140,7 @@ func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 		canvasGroup.ClearStartTime = time.Now()
 
 		go func() {
-			canvasGroup.broadcast("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n", nil)
+			canvasGroup.broadcast([]byte("Limpieza de canvas iniciada. Todos los usuarios deben confirmar con /clear yes en los proximos 10 segundos.\n"), nil)
 		}()
 
 		go waitForClearConfirmations(canvasGroup)
