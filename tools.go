@@ -75,7 +75,6 @@ func resetCanvas(canvasGroup *CanvasGroup) {
 func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 	time.Sleep(clearDuration)
 
-	// Versión simple sin mutex anidados
 	canvasGroup.Mutex.Lock()
 	defer canvasGroup.Mutex.Unlock()
 
@@ -90,16 +89,12 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 
 	shouldClear := numConfirmations == numClients && numClients > 0
 
-	// Preparar datos necesarios para después del unlock
 	var canvasRendered string
 	if shouldClear {
 		resetCanvas(canvasGroup)
 		canvasRendered = canvasGroup.renderCanvas()
 	}
 
-	// defer unlock se ejecutará aca
-	// Pero necesitamos hacer los broadcasts DESPUÉS del unlock
-	// Solución: usar una goroutine
 	go func() {
 		if shouldClear {
 			canvasGroup.broadcast([]byte(canvasRendered), nil)

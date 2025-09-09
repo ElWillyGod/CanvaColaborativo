@@ -75,15 +75,11 @@ func (cg *CanvasGroup) broadcast(message []byte, sender *Client) {
 
 	for client := range cg.Clients {
 		if client != sender {
-			// Envío no bloqueante.
 			select {
 			case client.send <- message:
-				// El mensaje fue enviado exitosamente al buzón del cliente.
 			default:
-				// El buzón del cliente está lleno. Esto significa que el cliente es
-				// demasiado lento. Descartamos el mensaje para no bloquear a todos los demás.
-				// En un sistema más avanzado, podríamos desconectar a este cliente.
-				fmt.Printf("Cliente %s demasiado lento, mensaje descartado.\n", client.conn.RemoteAddr())
+
+				fmt.Printf("chan client %s lleno.\n", client.conn.RemoteAddr())
 			}
 		}
 	}

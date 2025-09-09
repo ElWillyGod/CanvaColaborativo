@@ -79,6 +79,7 @@ func (c *Canvas) setChar(x, y int, char rune) {
 		}
 		c.mutexCanvas.Unlock()
 	}
+
 	tile.mutex.Lock()
 	localX := x % TileWidth
 	localY := y % TileHeight
@@ -97,7 +98,6 @@ func (c *Canvas) getChar(x, y int) rune {
 
 	tileID := TileID{X: x / TileWidth, Y: y / TileHeight}
 
-	// Bloqueo de lectura del canvas para acceder al mapa
 	c.mutexCanvas.RLock()
 	tile, ok := c.tiles[tileID]
 	c.mutexCanvas.RUnlock()
@@ -106,7 +106,6 @@ func (c *Canvas) getChar(x, y int) rune {
 		return ' '
 	}
 
-	// Bloqueo de lectura SOLO del tile para leer sus datos
 	tile.mutex.RLock()
 	defer tile.mutex.RUnlock()
 

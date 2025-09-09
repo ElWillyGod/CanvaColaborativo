@@ -147,7 +147,6 @@ func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 		return 1
 	}
 
-	// Si hay confirmación pendiente y el usuario responde "yes"
 	if len(args) > 0 && args[0] == "yes" && len(args) > 1 {
 		userID := args[1]
 		canvasGroup.ClearConfirmations[userID] = true
@@ -169,14 +168,13 @@ func paraatras(args []string, canvasGroup *CanvasGroup) int {
 
 	if len(canvasGroup.Oper) == 0 {
 		canvasGroup.Mutex.Unlock()
-		return 0 // No hay nada que deshacer, no se redibuja.
+		return 0
 	}
 
-	// Sacar la última acción de la pila.
 	lastActionDeltas := canvasGroup.Oper[len(canvasGroup.Oper)-1]
 	canvasGroup.Oper = canvasGroup.Oper[:len(canvasGroup.Oper)-1]
 
-	canvasGroup.Mutex.Unlock() // Desbloquear antes de dibujar
+	canvasGroup.Mutex.Unlock()
 
 	// Aplicar los deltas inversos.
 	for _, delta := range lastActionDeltas {

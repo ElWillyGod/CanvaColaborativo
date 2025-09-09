@@ -40,16 +40,13 @@ func saveCanvasValkey(canvas *Canvas) error {
 	canvas.mutexCanvas.RLock()
 	defer canvas.mutexCanvas.RUnlock()
 
-	// Usamos un buffer para la codificación binaria
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 
-	// Codificamos el mapa de tiles. Gob sí soporta struct como clave.
 	if err := encoder.Encode(canvas.tiles); err != nil {
 		return fmt.Errorf("error al codificar con gob: %w", err)
 	}
 
-	// Guardamos los bytes del buffer en Redis.
 	err := rdb.Set(ctx, "canvas:"+canvas.ID, buffer.Bytes(), 0).Err()
 	if err != nil {
 		return fmt.Errorf("error al guardar en redis: %w", err)
@@ -60,8 +57,8 @@ func saveCanvasValkey(canvas *Canvas) error {
 
 func loadCanvasFromValkey(id string) (*Canvas, error) {
 	ctx := context.Background()
-	// Obtenemos los datos como bytes
 	data, err := rdb.Get(ctx, "canvas:"+id).Bytes()
+
 	if err != nil {
 		if err == redis.Nil {
 			return nil, fmt.Errorf("canvas con ID '%s' no encontrado", id)
@@ -71,7 +68,6 @@ func loadCanvasFromValkey(id string) (*Canvas, error) {
 
 	canvas := newCanvas(id)
 
-	// Creamos un buffer a partir de los bytes y un decodificador gob
 	buffer := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buffer)
 
