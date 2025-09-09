@@ -99,7 +99,6 @@ func waitForClearConfirmations(canvasGroup *CanvasGroup) {
 		if shouldClear {
 			canvasGroup.broadcast([]byte(canvasRendered), nil)
 			canvasGroup.broadcast([]byte("Canvas limpiado.\n"), nil)
-			//saveCanvasValkey(canvasGroup.Canvas)
 		} else {
 			canvasGroup.broadcast([]byte("Limpieza cancelada.\n"), nil)
 		}

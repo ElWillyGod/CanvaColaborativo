@@ -135,7 +135,6 @@ func clearCanvas(args []string, canvasGroup *CanvasGroup) int {
 	canvasGroup.Mutex.Lock()
 	defer canvasGroup.Mutex.Unlock()
 
-	// Si no hay limpieza pendiente, iniciar una nueva
 	if !canvasGroup.PendingClear {
 		canvasGroup.PendingClear = true
 		canvasGroup.ClearConfirmations = make(map[string]bool)
@@ -178,11 +177,9 @@ func paraatras(args []string, canvasGroup *CanvasGroup) int {
 
 	canvasGroup.Mutex.Unlock()
 
-	// Aplicar los deltas inversos.
 	for _, delta := range lastActionDeltas {
 		canvasGroup.Canvas.setChar(delta.X, delta.Y, delta.Char)
 	}
 
-	// Devolver '1' para que handleConnection renderice y difunda el estado actualizado.
 	return 1
 }

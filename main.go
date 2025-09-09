@@ -117,6 +117,14 @@ func handleConnection(conn net.Conn) {
 				canvasesMu.Unlock()
 			}
 		}
+		func() {
+			defer func() {
+				if recover() != nil {
+					// El canal ya estaba cerrado, no hacer nada.
+				}
+			}()
+			close(client.send)
+		}()
 		conn.Close()
 		fmt.Println("Conexion cerrada desde", conn.RemoteAddr())
 	}()
@@ -184,7 +192,6 @@ SESSON_LOOP:
 			}
 			if commandResult == 1 {
 
-				//canvasRendered := canvasGroup.renderCanvas()
 				canvasGroup.broadcast([]byte(canvasGroup.renderCanvas()), nil)
 			}
 			if commandResult == 2 {

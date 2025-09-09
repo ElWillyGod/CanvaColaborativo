@@ -38,7 +38,6 @@ func allowCommand(conn net.Conn) bool {
 
 	limiter.mutex.Lock()
 	defer limiter.mutex.Unlock()
-
 	now := time.Now()
 
 	if limiter.full {

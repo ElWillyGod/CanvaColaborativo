@@ -62,11 +62,7 @@ func (cg *CanvasGroup) addClient(client *Client) {
 func (cg *CanvasGroup) removeClient(client *Client) {
 	cg.Mutex.Lock()
 	defer cg.Mutex.Unlock()
-	if _, ok := cg.Clients[client]; ok {
-		delete(cg.Clients, client)
-
-		close(client.send)
-	}
+	delete(cg.Clients, client)
 }
 
 func (cg *CanvasGroup) broadcast(message []byte, sender *Client) {
